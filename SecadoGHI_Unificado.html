@@ -28,8 +28,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--ghi-gray-100);color:var(-
 .header-badge{background:var(--ghi-red);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;letter-spacing:0.08em;text-transform:uppercase}
 .tab-bar{background:#fff;border-bottom:2px solid var(--ghi-gray-200);padding:0 24px;display:flex;gap:0;position:sticky;top:0;z-index:50}
 .tab-btn{padding:14px 24px;font-size:13px;font-weight:600;color:var(--ghi-gray);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:color 0.2s,border-color 0.2s;letter-spacing:0.03em;text-transform:uppercase}
-.tab-btn.active{color:var(--ghi-red);border-bottom-color:var(--ghi-red)}
-.tab-btn:hover:not(.active){color:var(--ghi-ink)}
+.tab-btn.active{color:var(--ghi-red);border-bottom-color:var(--ghi-red);box-shadow:inset 0 -3px 0 var(--ghi-red)}
+.tab-btn:hover:not(.active){color:var(--ghi-ink);background:var(--ghi-gray-100)}
 .tab-panel{display:none;padding:24px;max-width:1400px;margin:0 auto}
 .tab-panel.active{display:block}
 .card{background:#fff;border:1px solid var(--ghi-gray-200);border-radius:4px;box-shadow:var(--shadow-2);margin-bottom:20px}
@@ -74,6 +74,7 @@ thead tr{background:var(--ghi-graphite);color:#fff}
 thead th{padding:10px 12px;font-weight:600;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap}
 tbody tr:nth-child(even){background:var(--ghi-gray-100)}
 tbody tr:hover{background:#f0f4ff}
+tbody tr{transition:background 0.15s}
 tbody td{padding:8px 12px;border-bottom:1px solid var(--ghi-gray-200);vertical-align:middle}
 tbody td.auto-calc{background:var(--ghi-gray-100);color:var(--ghi-gray);font-family:'JetBrains Mono',monospace;font-size:11px}
 td input[type=text],td input[type=number]{border:1px solid var(--ghi-gray-300);border-radius:3px;padding:4px 8px;font-size:12px;width:100%;min-width:60px;font-family:'JetBrains Mono',monospace}
@@ -89,7 +90,7 @@ td input[type=text]:focus,td input[type=number]:focus{outline:none;border-color:
 .summary-block{background:var(--ghi-graphite);color:#fff;border-radius:4px;padding:16px 24px;text-align:center;min-width:110px}
 .summary-block .val{font-size:40px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--ghi-neon);line-height:1}
 .summary-block .lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ghi-gray);margin-top:4px}
-.chart-wrap{position:relative;height:340px}
+.chart-wrap{position:relative;height:420px}
 .live-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:20px}
 .live-card{background:var(--ghi-graphite);color:#fff;border-radius:4px;padding:16px 20px}
 .live-card .lc-title{font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ghi-gray);margin-bottom:6px}
@@ -108,6 +109,7 @@ td input[type=text]:focus,td input[type=number]:focus{outline:none;border-color:
 .toggle-slider::before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:0.3s}
 .toggle input:checked+.toggle-slider{background:var(--ghi-red)}
 .toggle input:checked+.toggle-slider::before{transform:translateX(18px)}
+.row-current{background:rgba(192,2,44,0.06)!important;border-left:3px solid var(--ghi-red)}
 @media(max-width:640px){.form-grid{grid-template-columns:1fr}.summary-block .val{font-size:26px}}
 </style>
 </head>
@@ -124,6 +126,7 @@ td input[type=text]:focus,td input[type=number]:focus{outline:none;border-color:
     <div>
       <div class="logo-text">GHI Smart Furnaces</div>
       <div class="logo-sub">Secado de Refractarios — v2.0 Unificado</div>
+      <div id="header-project-name" style="font-size:11px;color:var(--ghi-gray-300);margin-top:1px;display:none"></div>
     </div>
   </div>
   <div class="header-right">
@@ -290,7 +293,7 @@ td input[type=text]:focus,td input[type=number]:focus{outline:none;border-color:
       <div class="form-grid">
         <div class="form-group" style="grid-column:1 / -1">
           <label class="form-label">Nombre del proyecto / identificación</label>
-          <input type="text" id="project-name" class="form-input" placeholder="Ej: Horno N°3 — Colada bóveda completa" oninput="saveProjectData()">
+          <input type="text" id="project-name" class="form-input" placeholder="Ej: Horno N°3 — Colada bóveda completa" oninput="saveProjectData();updateHeaderProject()">
         </div>
         <div class="form-group">
           <label class="form-label">Fecha inicio secado</label>
@@ -334,6 +337,8 @@ td input[type=text]:focus,td input[type=number]:focus{outline:none;border-color:
       <div style="margin-left:auto;display:flex;gap:8px">
         <button class="btn btn-outline btn-sm" onclick="addManualRow()">+ Fila manual</button>
         <button class="btn btn-outline btn-sm" onclick="recalcTable()">&#8635; Recalcular</button>
+        <button class="btn btn-outline btn-sm" onclick="sincronizarTC()">&#8645; Sincronizar TC</button>
+        <button class="btn btn-outline btn-sm" onclick="copiarHMI()">&#128203; Copiar HMI</button>
       </div>
     </div>
     <div class="card-body" style="padding:0">
@@ -362,6 +367,11 @@ td input[type=text]:focus,td input[type=number]:focus{outline:none;border-color:
 <!-- ===== TAB 2: REGISTRO HORA-HORA ===== -->
 <div class="tab-panel" id="panel2">
 
+  <div id="mat-summary-card" class="card" style="display:none;margin-bottom:20px">
+    <div class="card-header"><span class="card-title">Material Seleccionado</span></div>
+    <div class="card-body" id="mat-summary-body" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:13px"></div>
+  </div>
+
   <div class="live-grid">
     <div class="live-card">
       <div class="lc-title">Duración total secado</div>
@@ -382,6 +392,11 @@ td input[type=text]:focus,td input[type=number]:focus{outline:none;border-color:
       <div class="lc-title">Reloj del sistema</div>
       <div class="lc-value" id="live-clock">—</div>
       <div class="lc-sub" id="live-date">—</div>
+    </div>
+    <div class="live-card">
+      <div class="lc-title">Tª Teórica Ahora</div>
+      <div class="lc-value" id="live-teo-now">—</div>
+      <div class="lc-sub" id="live-teo-elapsed">horas transcurridas: —</div>
     </div>
   </div>
 
@@ -4784,6 +4799,8 @@ function calculateAndGo(){
     updateSummary();
     renderRampTable();
     generarRegistroDesdeRampa();
+    updateMatSummaryCard();
+    updateTabIndicators();
     showTab(1);
   }
 }
@@ -4815,7 +4832,7 @@ function renderRampTable(){
   const thead=document.getElementById('ramp-thead');
   const tbody=document.getElementById('ramp-tbody');
   thead.innerHTML=`<tr>
-    <th>#</th><th>Tipo</th><th>°C/h</th><th>Dur. (h)</th><th>Dur. (min)</th>
+    <th>#</th><th>Tipo</th><th>T. Inicio</th><th>°C/h</th><th>Dur. (h)</th><th>Dur. (min)</th>
     <th>Horas Acum.</th><th>T. Objetivo</th>
     ${names.map(nm=>`<th>${escH(nm)}</th>`).join('')}
   </tr>`;
@@ -4826,6 +4843,7 @@ function renderRampTable(){
     tr.innerHTML=`
       <td class="mono">${seg.idx}</td>
       <td>${seg.type==='RAMPA'?'<span class="badge badge-rampa">Rampa</span>':'<span class="badge badge-meseta">Meseta</span>'}</td>
+      <td class="auto-calc mono">${seg.tempStart}°C</td>
       <td class="auto-calc mono">${seg.type==='RAMPA'?seg.rate.toFixed(1):'—'}</td>
       <td class="auto-calc mono">${seg.duration.toFixed(2)}</td>
       <td class="auto-calc mono">${durMin}</td>
@@ -4877,9 +4895,62 @@ function renderCurveChart(){
   if(pts[pts.length-1].x<total) pts.push({x:parseFloat(total.toFixed(3)),y:parseFloat(getTempAtHour(segs,total).toFixed(1))});
   const ctx=document.getElementById('curve-chart').getContext('2d');
   if(appState.curveChartInst) appState.curveChartInst.destroy();
+
+  // Degradado bajo la curva (mejora 6)
+  const gradient=ctx.createLinearGradient(0,0,0,400);
+  gradient.addColorStop(0,'rgba(192,2,44,0.12)');
+  gradient.addColorStop(1,'rgba(192,2,44,0.01)');
+
+  // Plugin líneas verticales de fase + zona crítica (mejoras 5 y 12)
+  const phasePlugin={
+    id:'phaseLines',
+    afterDraw(chart){
+      const {ctx:c,scales:{x,y},chartArea}=chart;
+      // Zona crítica (mejora 12)
+      const y110=y.getPixelForValue(110);
+      const y350=y.getPixelForValue(350);
+      if(y110!==undefined&&y350!==undefined){
+        c.save();
+        c.fillStyle='rgba(251,191,36,0.07)';
+        const top=Math.min(y110,y350);
+        const bot=Math.max(y110,y350);
+        c.fillRect(chartArea.left,top,chartArea.right-chartArea.left,bot-top);
+        c.fillStyle='rgba(180,130,0,0.5)';
+        c.font='10px DM Sans,sans-serif';
+        c.fillText('ZONA CRÍTICA',chartArea.left+8,top+14);
+        c.restore();
+      }
+      // Líneas verticales en inicio de cada meseta (mejora 5)
+      segs.forEach(seg=>{
+        if(seg.type!=='MESETA') return;
+        const xPx=x.getPixelForValue(seg.accumStart);
+        if(xPx<chartArea.left||xPx>chartArea.right) return;
+        c.save();
+        c.strokeStyle='rgba(192,2,44,0.4)';
+        c.lineWidth=1.5;
+        c.setLineDash([5,4]);
+        c.beginPath();c.moveTo(xPx,chartArea.top);c.lineTo(xPx,chartArea.bottom);c.stroke();
+        c.setLineDash([]);
+        // Etiqueta rotada
+        c.save();
+        c.translate(xPx+12,chartArea.bottom-20);
+        c.rotate(-Math.PI/2);
+        c.fillStyle='rgba(192,2,44,0.7)';
+        c.font='10px JetBrains Mono,monospace';
+        c.fillText(`${seg.tempStart}°C`,0,0);
+        c.restore();
+        c.restore();
+      });
+    }
+  };
+
   appState.curveChartInst=new Chart(ctx,{
     type:'line',
-    data:{datasets:[{label:'T. Teórica (°C)',data:pts,borderColor:'#C0022C',borderWidth:2.5,pointRadius:0,tension:0.05,fill:false}]},
+    data:{datasets:[{
+      label:'T. Teórica (°C)',data:pts,
+      borderColor:'#C0022C',borderWidth:2.5,pointRadius:0,tension:0.05,
+      fill:'origin',backgroundColor:gradient
+    }]},
     options:{
       responsive:true,maintainAspectRatio:false,parsing:false,
       scales:{
@@ -4888,9 +4959,18 @@ function renderCurveChart(){
       },
       plugins:{
         legend:{labels:{font:{size:12}}},
-        tooltip:{callbacks:{title:i=>`t = ${i[0].raw.x} h`,label:i=>`${i[0].raw.y} °C`}}
+        tooltip:{callbacks:{
+          title:i=>{
+            const h=i[0].raw.x;
+            const phase=getCurrentPhase(segs,h);
+            const phaseName=phase?(phase.seg.type==='RAMPA'?`Rampa ${phase.seg.tempStart}→${phase.seg.tempEnd}°C`:`Meseta ${phase.seg.tempStart}°C`):'';
+            return `t = ${h} h${phaseName?' | '+phaseName:''}`;
+          },
+          label:i=>`${i[0].raw.y} °C`
+        }}
       }
-    }
+    },
+    plugins:[phasePlugin]
   });
 }
 
@@ -4925,8 +5005,20 @@ function renderRegistroTable(){
   </tr>`;
   const tbody=document.getElementById('registro-tbody');
   tbody.innerHTML='';
+  // Calcular hora actual del secado para row-current
+  const ds2=document.getElementById('start-date').value;
+  const ts2=document.getElementById('start-time').value;
+  let currentHourIdx=-1;
+  if(ds2&&ts2&&appState.totalHours>0){
+    const start2=addDateTimeHours(ds2,ts2,0);
+    const elapsedH2=(new Date().getTime()-start2.getTime())/3600000;
+    if(elapsedH2>=0&&elapsedH2<=appState.totalHours){
+      currentHourIdx=Math.round(elapsedH2);
+    }
+  }
   rows.forEach((row,ri)=>{
     const tr=document.createElement('tr');
+    if(row.hora===currentHourIdx) tr.classList.add('row-current');
     tr.innerHTML=`
       <td class="mono" style="font-size:11px">${row.fecha}</td>
       <td class="mono" style="font-size:11px">${row.horaStr}</td>
@@ -4973,7 +5065,7 @@ function cargarCSV(){
       if(cols.length<2) continue;
       const tsStr=cols[0].trim();
       const tempStr=cols[1].trim().replace(',','.');
-      const tsObj=new Date(tsStr);
+      const tsObj=new Date(tsStr.replace(' ','T'));
       const temp=parseFloat(tempStr);
       if(!isNaN(tsObj.getTime())&&!isNaN(temp)) parsed.push({ts:tsObj.getTime(),temp});
     }
@@ -5001,6 +5093,7 @@ function cargarCSV(){
     document.getElementById('csv-status').textContent=`${parsed.length} lecturas cargadas → ${mapped} filas mapeadas (tolerancia ±30 min).`;
     renderRegistroTable();
     updateRegistroChart();
+    renderRegistroChart();
   };
   reader.readAsText(file,'utf-8');
 }
@@ -5029,6 +5122,35 @@ function renderRegistroChart(){
   });
   const ctx=document.getElementById('registro-chart').getContext('2d');
   if(appState.registroChartInst) appState.registroChartInst.destroy();
+  const segs=appState.segments;
+
+  const regPhasePlugin={
+    id:'regPhaseLines',
+    afterDraw(chart){
+      if(!segs||!segs.length) return;
+      const {ctx:c,scales:{x,y},chartArea}=chart;
+      segs.forEach(seg=>{
+        if(seg.type!=='MESETA') return;
+        const xPx=x.getPixelForValue(seg.accumStart);
+        if(xPx<chartArea.left||xPx>chartArea.right) return;
+        c.save();
+        c.strokeStyle='rgba(192,2,44,0.4)';
+        c.lineWidth=1.5;
+        c.setLineDash([5,4]);
+        c.beginPath();c.moveTo(xPx,chartArea.top);c.lineTo(xPx,chartArea.bottom);c.stroke();
+        c.setLineDash([]);
+        c.save();
+        c.translate(xPx+12,chartArea.bottom-20);
+        c.rotate(-Math.PI/2);
+        c.fillStyle='rgba(192,2,44,0.7)';
+        c.font='10px JetBrains Mono,monospace';
+        c.fillText(`${seg.tempStart}°C`,0,0);
+        c.restore();
+        c.restore();
+      });
+    }
+  };
+
   appState.registroChartInst=new Chart(ctx,{
     type:'line',data:{datasets},
     options:{
@@ -5038,7 +5160,8 @@ function renderRegistroChart(){
         y:{title:{display:true,text:'Temperatura (°C)',font:{size:12}},grid:{color:'rgba(0,0,0,0.05)'}}
       },
       plugins:{legend:{labels:{font:{size:12}}}}
-    }
+    },
+    plugins:[regPhasePlugin]
   });
 }
 
@@ -5085,6 +5208,25 @@ function startClock(){
     document.getElementById('live-clock').textContent=fmtTime(now)+':'+fmt2(now.getSeconds());
     document.getElementById('live-date').textContent=`${now.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'short',year:'numeric'})}`;
     updateLivePanel();
+    // Tª Teórica Ahora (mejora 10)
+    const ds=document.getElementById('start-date').value;
+    const ts=document.getElementById('start-time').value;
+    const segs=appState.segments;
+    if(ds&&ts&&segs&&segs.length){
+      const start=addDateTimeHours(ds,ts,0);
+      const elapsedH=(now.getTime()-start.getTime())/3600000;
+      if(elapsedH>=0){
+        const teoNow=getTempAtHour(segs,elapsedH);
+        document.getElementById('live-teo-now').textContent=teoNow.toFixed(1)+'°C';
+        document.getElementById('live-teo-elapsed').textContent=`horas transcurridas: ${elapsedH.toFixed(2)}`;
+      } else {
+        document.getElementById('live-teo-now').textContent='No iniciado';
+        document.getElementById('live-teo-elapsed').textContent='horas transcurridas: —';
+      }
+    } else {
+      document.getElementById('live-teo-now').textContent='—';
+      document.getElementById('live-teo-elapsed').textContent='horas transcurridas: —';
+    }
   }
   tick();
   setInterval(tick,1000);
@@ -5298,6 +5440,147 @@ function loadProject(){
     alert('Proyecto cargado correctamente.');
   }catch(e){alert('Error cargando proyecto: '+e.message);}
 }
+
+// ===================== HEADER PROJECT NAME (mejora 8) =====================
+function updateHeaderProject(){
+  const val=document.getElementById('project-name').value;
+  const el=document.getElementById('header-project-name');
+  if(val){el.textContent=val;el.style.display='block';}
+  else el.style.display='none';
+}
+
+// ===================== MAT SUMMARY CARD (mejora 7) =====================
+function updateMatSummaryCard(){
+  const card=document.getElementById('mat-summary-card');
+  const body=document.getElementById('mat-summary-body');
+  const m=appState.selectedMaterial;
+  const cfg=appState.config;
+  if(m){
+    const tc='badge-'+(m.type||'LCC').toLowerCase();
+    const alerts=[];
+    if(m.hasAntiWetting) alerts.push('<span class="badge badge-ulcc">Anti-Wetting</span>');
+    if(m.hasFibers) alerts.push('<span class="badge badge-cc">Fibras PP</span>');
+    body.innerHTML=`
+      <span class="badge ${tc}">${m.type}</span>
+      <strong>${escH(m.name)}</strong>
+      <span style="color:var(--ghi-gray)">${escH(m.brand)}</span>
+      ${m.temperatura?`<span class="mono" style="color:var(--ghi-red)">T_max: ${m.temperatura}°C</span>`:''}
+      <span style="color:var(--ghi-gray)">Tasa: ${m.rate} °C/h</span>
+      <span style="color:var(--ghi-gray)">Agua: ${m.water} L/100kg</span>
+      ${alerts.join('')}
+    `;
+    card.style.display='block';
+  } else if(cfg){
+    body.innerHTML=`
+      <span class="badge badge-${(cfg.castableType||'LCC').toLowerCase()}">${cfg.castableType}</span>
+      <span style="color:var(--ghi-gray)">Tasa: ${cfg.binderRate} °C/h</span>
+      <span style="color:var(--ghi-gray)">Espesor: ${cfg.denseThickness} mm</span>
+    `;
+    card.style.display='block';
+  } else {
+    card.style.display='none';
+  }
+}
+
+// ===================== TAB INDICATORS (mejora 13) =====================
+function updateTabIndicators(){
+  const hasSegs=appState.segments&&appState.segments.length>0;
+  const hasData=appState.registroRows&&appState.registroRows.some(r=>r.tcVals.some(v=>v!==''));
+  const tab0=document.getElementById('tab0');
+  const tab1=document.getElementById('tab1');
+  const tab2=document.getElementById('tab2');
+  if(tab0){
+    tab0.textContent=(hasSegs?'✓ ':'')+'⚙ Configuración';
+  }
+  if(tab1){
+    tab1.textContent=(hasSegs?'✓ ':'')+'📈 Curva de Secado';
+  }
+  if(tab2){
+    tab2.textContent=(hasData?'✓ ':'')+'📋 Registro Hora-Hora';
+  }
+}
+
+// ===================== COPIAR HMI (mejora 4) =====================
+function copiarHMI(){
+  const segs=appState.segments;
+  if(!segs||!segs.length){alert('No hay segmentos calculados.');return;}
+  const header='N°\tTipo\tT.Inicio\t°C/h\tDur.h\tDur.min\tHoras Acum.\tT.Fin';
+  const lines=[header];
+  segs.forEach(seg=>{
+    const durMin=Math.round(seg.duration*60);
+    lines.push([
+      seg.idx,
+      seg.type,
+      seg.tempStart+'°C',
+      seg.type==='RAMPA'?seg.rate.toFixed(1):'—',
+      seg.duration.toFixed(2),
+      durMin,
+      seg.accumEnd.toFixed(2),
+      seg.tempEnd+'°C'
+    ].join('\t'));
+  });
+  const hmi=hoursToHMI(appState.totalHours||0);
+  lines.push(`TOTAL:\t${hmi.dias}d ${hmi.horas}h ${hmi.minutos}m\t(${(appState.totalHours||0).toFixed(2)} h)`);
+  const text=lines.join('\n');
+  navigator.clipboard.writeText(text).then(()=>{
+    showToast('Cronograma copiado al portapapeles ✓','#16a34a');
+  }).catch(()=>{
+    const ta=document.createElement('textarea');
+    ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();
+    showToast('Cronograma copiado al portapapeles ✓','#16a34a');
+  });
+}
+
+function showToast(msg,color){
+  const t=document.createElement('div');
+  t.textContent=msg;
+  Object.assign(t.style,{
+    position:'fixed',bottom:'24px',right:'24px',background:color||'#16a34a',
+    color:'#fff',padding:'12px 20px',borderRadius:'4px',fontWeight:'600',
+    fontSize:'13px',zIndex:'9999',boxShadow:'0 4px 16px rgba(0,0,0,0.2)',
+    transition:'opacity 0.4s'
+  });
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),400);},2000);
+}
+
+// ===================== SINCRONIZAR TC (mejora 9) =====================
+function sincronizarTC(){
+  const segs=appState.segments;
+  const rows=appState.registroRows;
+  if(!segs||!segs.length||!rows||!rows.length){alert('Sin datos para sincronizar.');return;}
+  const tbody=document.getElementById('ramp-tbody');
+  const trs=tbody.querySelectorAll('tr:not(.manual-row)');
+  let synced=0;
+  segs.forEach((seg,i)=>{
+    const targetHour=seg.accumEnd;
+    let bestRow=null,bestDiff=Infinity;
+    rows.forEach(row=>{
+      const diff=Math.abs(row.hora-targetHour);
+      if(diff<bestDiff){bestDiff=diff;bestRow=row;}
+    });
+    if(!bestRow||!trs[i]) return;
+    const inputs=trs[i].querySelectorAll('input[type=number][data-tc]');
+    inputs.forEach(inp=>{
+      const ti=parseInt(inp.getAttribute('data-tc'));
+      if(bestRow.tcVals[ti]!==''&&!isNaN(bestRow.tcVals[ti])){
+        inp.value=bestRow.tcVals[ti];
+        synced++;
+      }
+    });
+  });
+  showToast(`TC sincronizados: ${synced} celdas actualizadas`,'#1d4ed8');
+}
+
+// ===================== KEYBOARD SHORTCUTS (mejora 15) =====================
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') return;
+  if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();calculateAndGo();}
+  if(e.ctrlKey&&e.key==='s'){e.preventDefault();saveProject();}
+  if(!e.ctrlKey&&!e.altKey&&e.key==='1') showTab(0);
+  if(!e.ctrlKey&&!e.altKey&&e.key==='2') showTab(1);
+  if(!e.ctrlKey&&!e.altKey&&e.key==='3') showTab(2);
+});
 
 // ===================== INIT =====================
 document.addEventListener('DOMContentLoaded',function(){

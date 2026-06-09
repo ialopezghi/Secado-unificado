@@ -6,66 +6,82 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **SecadoGHI Unificado** — aplicación web monolítica para el cálculo y seguimiento de curvas de secado de revestimiento refractario en hornos industriales (GHI Smart Furnaces).
 
-Un único archivo HTML autocontenido: `SecadoGHI_Unificado.html`. No hay build system, bundler, dependencias npm, ni servidor. Se abre directamente en el navegador.
+Un único archivo HTML autocontenido: `SecadoGHI_Unificado.html`. No hay build system, bundler, dependencias npm, ni servidor. Se abre directamente en el navegador con doble clic.
 
 ## Ejecutar la aplicación
 
-Abrir `SecadoGHI_Unificado.html` directamente en el navegador (doble clic o arrastrar). No requiere servidor local.
+Abrir `SecadoGHI_Unificado.html` directamente en el navegador. No requiere servidor local.
 
-Todas las librerías se cargan desde CDN al abrir:
+Librerías cargadas desde CDN:
 - Chart.js 4.4.1
 - ExcelJS 4.3.0
 - jsPDF 2.5.1 + jspdf-autotable 3.8.4
 - Google Fonts (DM Sans, JetBrains Mono)
-
-La aplicación funciona offline salvo las fuentes y librerías CDN.
 
 ## Arquitectura
 
 ### Flujo de datos entre tabs
 
 ```
-Tab 1 (Configuración)
+Tab 0 — Configuración
   └─ calculateProfile(config) → appState.segments, appState.totalHours, appState.alerts
-       └─ renderRampTable() → Tab 2 (Curva de Secado)
-            └─ generarRegistroDesdeRampa() → appState.registroRows → Tab 3 (Registro)
-                 └─ cargarCSV() → mapea lecturas de termopares a registroRows
-                      └─ exportExcel() / exportPDF()
+       └─ renderRampTable() + generarRegistroDesdeRampa()
+
+Tab 1 — Curva de Secado
+  └─ Tabla de rampa editable + gráfica teórica
+  └─ TC dinámicos: addTc() / removeTc() / removeTcAt(i)
+
+Tab 2 — Registro Hora-Hora
+  └─ cargarCSV() → mapea lecturas de termopares a appState.registroRows
+  └─ exportExcel() / exportPDF() — siempre visibles, no requieren "Fin de Secado"
 ```
 
 ### Estado global (`appState`)
 
-Todo el estado vive en el objeto `appState` (definido al inicio del `<script>`):
-- `appState.segments` — array de tramos calculados (RAMPA / MESETA)
-- `appState.totalHours` — duración total en horas decimales
-- `appState.alerts` — alertas de seguridad generadas por `calculateProfile`
-- `appState.config` — configuración de material y geometría del último cálculo
-- `appState.registroRows` — filas de la tabla hora-hora (fecha, hora, Tª teórica, TC1..10, observaciones)
-- `appState.tcNames`, `appState.tcCount` — nombres y número de termopares activos
-- `appState.selectedMaterial` — material seleccionado de `HormigonesDatabase`
+Todo el estado vive en el objeto `appState` al inicio del `<script>`:
+- `segments` — array de tramos calculados (RAMPA / MESETA)
+- `totalHours` — duración total en horas decimales
+- `alerts` — alertas de seguridad generadas por `calculateProfile`
+- `config` — configuración de material y geometría del último cálculo
+- `registroRows` — filas hora-hora: `{ hora, fecha, horaStr, teoTemp, tcVals[], tNave, obs }`
+- `tcNames`, `tcCount` — nombres y número de termopares (dinámico, sin límite fijo)
+- `selectedMaterial` — material seleccionado de `HormigonesDatabase`
 
-El estado se persiste en `localStorage` bajo la clave `ghiSecadoProject_v2`.
+Persistencia en `localStorage` bajo la clave `ghiSecadoProject_v2`.
+
+### Termopares dinámicos
+
+Los TCs no tienen límite fijo. Se gestionan con:
+- `addTc()` — añade un TC con nombre sugerido de `TC_DEFAULT_NAMES[]`
+- `removeTc()` — elimina el último
+- `removeTcAt(i)` — elimina el TC en posición `i`, preservando datos del resto
+- `_syncTCCount()` — sincroniza el display, regenera tablas y extiende `registroRows`
+
+Nombres por defecto: Tª Regulación, Tª Hormigón, Tª Ambiente, TC4, Tª Solera, Tª Bóveda, Tª Pared Izq, Tª Pared Der, Tª Entrada, Tª Salida.
 
 ### Base de datos de materiales
 
-`HormigonesDatabase` — array de 268 objetos inline en el HTML. Cada material:
+`HormigonesDatabase` — array de 268 objetos inline en el HTML (~líneas 459–4560). No modificar sin regenerar desde la fuente original. Cada material:
 ```js
 { name, brand, type, tipoHormigon, rate, water, hasFibers, hasAntiWetting, temperatura, al2o3, densidad, codigo }
 ```
-`type` es CC | LCC | ULCC | SOL_GEL. Este campo controla los factores de cálculo.
+`type`: CC | LCC | ULCC | SOL_GEL — controla los factores de cálculo.
 
 ### Motor de cálculo (`calculateProfile`)
 
-Genera el cronograma de secado seguro. Lógica clave:
-- Divide cada rampa en sub-segmentos al cruzar los boundaries críticos: 110°C, 200°C, 350°C
+- Divide cada rampa en sub-segmentos en los boundaries críticos: 110°C, 200°C, 350°C
 - Aplica `getSafeRateAtTemp()` en el punto medio de cada sub-segmento
-- Factores acumulativos: LCC/ULCC ×0.8, anti-wetting ×0.6, fibras ×1.5 (solo >200°C)
-- Zona crítica 110–350°C: velocidad máxima 15°C/h independientemente del material
-- Hold times calculados por `calculateHoldDuration()`: base = (espesor_mm/25.4) × factor(T), más corrección difusiva si hay capa aislante
+- Factores: LCC/ULCC ×0.8, anti-wetting ×0.6, fibras ×1.5 (solo >200°C)
+- Zona crítica 110–350°C: máximo 15°C/h
+- Hold times: `(espesor_mm/25.4) × factor(T)` + corrección difusiva si hay capa aislante
 
 ### Carga de CSV (`cargarCSV`)
 
-Formato esperado: separador `;`, saltar 2 líneas de cabecera, columna 0 = timestamp `YYYY-MM-DD HH:mm:ss.fff`, columna 1 = temperatura decimal con punto. Usa búsqueda binaria sobre timestamps ordenados; tolerancia de mapeo: ±30 minutos.
+Formato: separador `;`, saltar 2 líneas de cabecera, columna 0 = timestamp `YYYY-MM-DD HH:mm:ss.fff` (el espacio se sustituye por "T" antes de parsear), columna 1 = temperatura decimal (punto o coma). Búsqueda binaria; tolerancia ±30 min.
+
+### Observaciones predefinidas
+
+El `<datalist id="obs-predef">` al final del HTML define las sugerencias de la columna Observaciones: INICIO SECADO, FIN SECADO, INICIO/FIN RAMPA, PARADA PROGRAMADA, REANUDACIÓN, INCIDENCIA, FALLO TERMOPAR, CAMBIO DE TURNO, etc.
 
 ## Diseño GHI
 
@@ -74,7 +90,13 @@ Paleta oficial (no cambiar sin autorización):
 - `--ghi-graphite: #1F1F1F` — header, cabeceras de tabla
 - `--ghi-gray-100/200/300` — fondos, bordes, celdas auto-calculadas
 
-Celdas de valor calculado automáticamente llevan clase `auto-calc` (fondo gris, fuente mono, no editables por el usuario).
+Celdas calculadas automáticamente llevan clase `auto-calc` (fondo gris, fuente mono, no editables).
+
+## Atajos de teclado
+
+- `Ctrl+Enter` — calcular curva (Tab 0)
+- `Ctrl+S` — guardar proyecto
+- `1` / `2` / `3` — navegar entre tabs (solo si el foco no está en un input)
 
 ## Archivos relacionados (fuera de este directorio)
 

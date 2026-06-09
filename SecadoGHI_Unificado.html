@@ -304,16 +304,16 @@ td input[type=text]:focus,td input[type=number]:focus{outline:none;border-color:
           <input type="time" id="start-time" class="form-input" value="08:00" oninput="updateSummary();generarRegistroDesdeRampa();saveProjectData()">
         </div>
         <div class="form-group">
-          <label class="form-label">N° de termopares</label>
-          <select id="tc-count" class="form-select" onchange="onTCCountChange()">
-            <option value="2">2</option><option value="3">3</option><option value="4" selected>4</option>
-            <option value="5">5</option><option value="6">6</option><option value="7">7</option>
-            <option value="8">8</option><option value="9">9</option><option value="10">10</option>
-          </select>
+          <label class="form-label">Termopares</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="removeTc()" title="Eliminar último termopar" style="font-size:16px;line-height:1;padding:5px 10px">−</button>
+            <span id="tc-count-display" style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;min-width:28px;text-align:center">4</span>
+            <button class="btn btn-outline btn-sm" onclick="addTc()" title="Añadir termopar" style="font-size:16px;line-height:1;padding:5px 10px">+</button>
+          </div>
         </div>
       </div>
       <div style="margin-top:16px">
-        <div class="form-label" style="margin-bottom:8px">Nombres de termopares (editar para personalizar)</div>
+        <div class="form-label" style="margin-bottom:8px">Termopares activos — pulsa el nombre para editar, × para eliminar</div>
         <div id="tc-names-wrap" style="display:flex;gap:8px;flex-wrap:wrap"></div>
       </div>
     </div>
@@ -4732,19 +4732,54 @@ function onInsulatingToggle(){
     document.getElementById('insulating-toggle').checked?'block':'none';
 }
 function onTCCountChange(){
-  const n=parseInt(document.getElementById('tc-count').value)||4;
+  // legacy — kept for loadProject compatibility
+  const n=parseInt(document.getElementById('tc-count-display')?document.getElementById('tc-count-display').textContent:4)||4;
   appState.tcCount=n;
   while(appState.tcNames.length<n) appState.tcNames.push('TC'+(appState.tcNames.length+1));
-  updateTCNamesUI();
-  updateCSVSelect();
+  updateTCNamesUI(); updateCSVSelect();
+}
+function addTc(){
+  appState.tcCount++;
+  appState.tcNames.push('TC'+appState.tcCount);
+  _syncTCCount();
+}
+function removeTc(){
+  if(appState.tcCount<=1) return;
+  appState.tcCount--;
+  appState.tcNames=appState.tcNames.slice(0,appState.tcCount);
+  _syncTCCount();
+}
+function _syncTCCount(){
+  const el=document.getElementById('tc-count-display');
+  if(el) el.textContent=appState.tcCount;
+  updateTCNamesUI(); updateCSVSelect();
+  // extend existing registro rows
+  (appState.registroRows||[]).forEach(r=>{
+    while(r.tcVals.length<appState.tcCount) r.tcVals.push('');
+  });
+  if(appState.segments&&appState.segments.length) renderRampTable();
+  if(appState.registroRows&&appState.registroRows.length) renderRegistroTable();
 }
 function updateTCNamesUI(){
   const n=appState.tcCount;
   document.getElementById('tc-names-wrap').innerHTML=
     Array.from({length:n},(_,i)=>`
-      <input type="text" id="tc-name-${i}" class="form-input" value="${escH(appState.tcNames[i]||('TC'+(i+1)))}"
-        style="width:90px" oninput="appState.tcNames[${i}]=this.value;updateCSVSelect()">`
+      <div style="display:inline-flex;align-items:center;background:var(--ghi-gray-100);border:1px solid var(--ghi-gray-300);border-radius:4px;overflow:hidden">
+        <input type="text" id="tc-name-${i}" value="${escH(appState.tcNames[i]||('TC'+(i+1)))}"
+          style="border:none;background:transparent;padding:5px 8px;width:80px;font-size:12px;font-family:'DM Sans',sans-serif"
+          oninput="appState.tcNames[${i}]=this.value;updateCSVSelect()">
+        <button onclick="removeTcAt(${i})" title="Eliminar este termopar"
+          style="border:none;background:transparent;padding:4px 7px;cursor:pointer;color:var(--ghi-gray);font-size:13px;line-height:1"
+          onmouseover="this.style.color='var(--ghi-red)'" onmouseout="this.style.color='var(--ghi-gray)'">×</button>
+      </div>`
     ).join('');
+}
+function removeTcAt(i){
+  if(appState.tcCount<=1) return;
+  appState.tcNames.splice(i,1);
+  appState.tcCount--;
+  (appState.registroRows||[]).forEach(r=>r.tcVals.splice(i,1));
+  _syncTCCount();
 }
 function updateCSVSelect(){
   const n=appState.tcCount;
@@ -5029,7 +5064,7 @@ function renderRegistroTable(){
           onchange="appState.registroRows[${ri}].tcVals[${ti}]=this.value===''?'':parseFloat(this.value);updateRegistroChart()"></td>`).join('')}
       ${showNav?`<td><input type="number" value="${row.tNave}" step="0.1" placeholder="—" style="min-width:65px"
         onchange="appState.registroRows[${ri}].tNave=this.value===''?'':parseFloat(this.value)"></td>`:''}
-      <td><input type="text" value="${escH(row.obs)}" placeholder="…" style="min-width:120px"
+      <td><input type="text" list="obs-predef" value="${escH(row.obs)}" placeholder="…" style="min-width:160px"
         onchange="appState.registroRows[${ri}].obs=this.value"></td>
     `;
     tbody.appendChild(tr);
@@ -5363,7 +5398,7 @@ function saveProject(){
       projectName:document.getElementById('project-name').value,
       startDate:document.getElementById('start-date').value,
       startTime:document.getElementById('start-time').value,
-      tcCount:document.getElementById('tc-count').value,
+      tcCount:appState.tcCount,
       tcNames:[...appState.tcNames],
       segments:appState.segments,totalHours:appState.totalHours,
       alerts:appState.alerts,config:appState.config,
@@ -5402,7 +5437,7 @@ function loadProject(){
     if(d.projectName) document.getElementById('project-name').value=d.projectName;
     if(d.startDate)   document.getElementById('start-date').value=d.startDate;
     if(d.startTime)   document.getElementById('start-time').value=d.startTime;
-    if(d.tcCount)     document.getElementById('tc-count').value=d.tcCount;
+    if(d.tcCount){ appState.tcCount=parseInt(d.tcCount)||4; const disp=document.getElementById('tc-count-display'); if(disp) disp.textContent=appState.tcCount; }
     if(d.tcNames)     appState.tcNames=d.tcNames;
     if(d.castableType) document.getElementById('castable-type').value=d.castableType;
     if(d.binderRate)   document.getElementById('binder-rate').value=d.binderRate;
@@ -5588,10 +5623,29 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('start-date').value=fmtDate(today);
   appState.tcCount=4;
   appState.tcNames=['TC1','TC2','TC3','TC4'];
+  const disp=document.getElementById('tc-count-display');
+  if(disp) disp.textContent=appState.tcCount;
   updateTCNamesUI();
   updateCSVSelect();
   startClock();
 });
 </script>
+
+<datalist id="obs-predef">
+  <option value="INICIO SECADO"></option>
+  <option value="FIN SECADO"></option>
+  <option value="INICIO RAMPA"></option>
+  <option value="FIN RAMPA — INICIO MESETA"></option>
+  <option value="FIN MESETA — INICIO RAMPA"></option>
+  <option value="PARADA PROGRAMADA"></option>
+  <option value="REANUDACIÓN TRAS PARADA"></option>
+  <option value="INCIDENCIA — VER NOTAS"></option>
+  <option value="FALLO TERMOPAR"></option>
+  <option value="CAMBIO DE TURNO"></option>
+  <option value="LECTURA MANUAL"></option>
+  <option value="REVISIÓN QUEMADORES"></option>
+  <option value="AJUSTE DE CONSIGNA"></option>
+  <option value="MUESTRA TOMADA"></option>
+</datalist>
 </body>
 </html>

@@ -4520,7 +4520,7 @@ const TC_COLORS = ['#3b82f6','#22c55e','#f59e0b','#a855f7','#ec4899','#06b6d4','
 // ===================== APP STATE =====================
 const appState = {
   segments:[],totalHours:0,alerts:[],config:null,
-  tcCount:4,tcNames:['TC1','TC2','TC3','TC4'],
+  tcCount:4,tcNames:['Tª Regulación','Tª Hormigón','Tª Ambiente','TC4'],
   registroRows:[],csvData:{},
   curveChartInst:null,registroChartInst:null,
   selectedMaterial:null
@@ -4738,9 +4738,11 @@ function onTCCountChange(){
   while(appState.tcNames.length<n) appState.tcNames.push('TC'+(appState.tcNames.length+1));
   updateTCNamesUI(); updateCSVSelect();
 }
+const TC_DEFAULT_NAMES=['Tª Regulación','Tª Hormigón','Tª Ambiente','TC4','Tª Solera','Tª Bóveda','Tª Pared Izq','Tª Pared Der','Tª Entrada','Tª Salida'];
 function addTc(){
+  const i=appState.tcCount;
+  appState.tcNames.push(TC_DEFAULT_NAMES[i]||('TC'+(i+1)));
   appState.tcCount++;
-  appState.tcNames.push('TC'+appState.tcCount);
   _syncTCCount();
 }
 function removeTc(){
@@ -5622,7 +5624,7 @@ document.addEventListener('DOMContentLoaded',function(){
   const today=new Date();
   document.getElementById('start-date').value=fmtDate(today);
   appState.tcCount=4;
-  appState.tcNames=['TC1','TC2','TC3','TC4'];
+  appState.tcNames=['Tª Regulación','Tª Hormigón','Tª Ambiente','TC4'];
   const disp=document.getElementById('tc-count-display');
   if(disp) disp.textContent=appState.tcCount;
   updateTCNamesUI();

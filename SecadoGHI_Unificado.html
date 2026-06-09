@@ -1,0 +1,5314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GHI Smart Furnaces — Secado Unificado</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root {
+  --ghi-red:#C0022C; --ghi-ink:#333333; --ghi-gray:#959595; --ghi-white:#FEFEFE;
+  --ghi-neon:#4AFF92; --ghi-gray-100:#F2F2F2; --ghi-gray-200:#E0E0E0;
+  --ghi-gray-300:#C4C4C4; --ghi-graphite:#1F1F1F;
+  --shadow-brand:0 10px 40px -10px rgba(192,2,44,0.45);
+  --shadow-2:0 2px 6px rgba(11,11,12,0.08),0 8px 24px rgba(11,11,12,0.08);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--ghi-gray-100);color:var(--ghi-ink);font-size:14px;min-height:100vh}
+.mono{font-family:'JetBrains Mono',monospace}
+#app-header{background:var(--ghi-graphite);padding:0 24px;display:flex;align-items:center;gap:16px;height:60px;box-shadow:var(--shadow-brand)}
+.logo-wrap{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-text{font-size:20px;font-weight:700;color:#FEFEFE;letter-spacing:0.05em;text-transform:uppercase}
+.logo-sub{font-size:10px;color:var(--ghi-gray);letter-spacing:0.15em;text-transform:uppercase;font-weight:500}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.header-badge{background:var(--ghi-red);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;letter-spacing:0.08em;text-transform:uppercase}
+.tab-bar{background:#fff;border-bottom:2px solid var(--ghi-gray-200);padding:0 24px;display:flex;gap:0;position:sticky;top:0;z-index:50}
+.tab-btn{padding:14px 24px;font-size:13px;font-weight:600;color:var(--ghi-gray);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:color 0.2s,border-color 0.2s;letter-spacing:0.03em;text-transform:uppercase}
+.tab-btn.active{color:var(--ghi-red);border-bottom-color:var(--ghi-red)}
+.tab-btn:hover:not(.active){color:var(--ghi-ink)}
+.tab-panel{display:none;padding:24px;max-width:1400px;margin:0 auto}
+.tab-panel.active{display:block}
+.card{background:#fff;border:1px solid var(--ghi-gray-200);border-radius:4px;box-shadow:var(--shadow-2);margin-bottom:20px}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--ghi-gray-200);display:flex;align-items:center;gap:10px}
+.card-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--ghi-graphite)}
+.card-body{padding:20px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--ghi-gray)}
+.form-input,.form-select,.form-textarea{border:1px solid var(--ghi-gray-300);border-radius:4px;padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ghi-ink);background:#fff;transition:border-color 0.2s}
+.form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--ghi-red)}
+.form-textarea{resize:vertical;min-height:60px}
+.form-check{display:flex;align-items:center;gap:8px;cursor:pointer;padding:3px 0}
+.form-check input[type=checkbox]{accent-color:var(--ghi-red);width:15px;height:15px}
+.form-check input[type=radio]{accent-color:var(--ghi-red);width:15px;height:15px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:opacity 0.15s,background 0.15s;text-transform:uppercase;letter-spacing:0.05em}
+.btn-primary{background:var(--ghi-red);color:#fff}
+.btn-primary:hover{opacity:0.88}
+.btn-secondary{background:var(--ghi-graphite);color:#fff}
+.btn-secondary:hover{opacity:0.85}
+.btn-outline{background:transparent;color:var(--ghi-ink);border:1px solid var(--ghi-gray-300)}
+.btn-outline:hover{background:var(--ghi-gray-100)}
+.btn-sm{padding:5px 12px;font-size:11px}
+.btn-lg{padding:14px 28px;font-size:15px}
+.btn-block{width:100%;justify-content:center}
+.btn-success{background:#16a34a;color:#fff}
+.btn-success:hover{opacity:0.88}
+.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em}
+.badge-cc{background:#dcfce7;color:#15803d}
+.badge-lcc{background:#dbeafe;color:#1d4ed8}
+.badge-ulcc{background:#ffedd5;color:#c2410c}
+.badge-sol_gel{background:#f3e8ff;color:#7e22ce}
+.badge-rampa{background:#fee2e2;color:var(--ghi-red)}
+.badge-meseta{background:#dbeafe;color:#1d4ed8}
+.alert{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border-radius:4px;margin-bottom:10px;font-size:13px}
+.alert-danger{background:#fee2e2;border-left:4px solid var(--ghi-red);color:#7f1d1d}
+.alert-warning{background:#fef9c3;border-left:4px solid #d97706;color:#78350f}
+.alert-info{background:#dbeafe;border-left:4px solid #2563eb;color:#1e3a5f}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead tr{background:var(--ghi-graphite);color:#fff}
+thead th{padding:10px 12px;font-weight:600;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap}
+tbody tr:nth-child(even){background:var(--ghi-gray-100)}
+tbody tr:hover{background:#f0f4ff}
+tbody td{padding:8px 12px;border-bottom:1px solid var(--ghi-gray-200);vertical-align:middle}
+tbody td.auto-calc{background:var(--ghi-gray-100);color:var(--ghi-gray);font-family:'JetBrains Mono',monospace;font-size:11px}
+td input[type=text],td input[type=number]{border:1px solid var(--ghi-gray-300);border-radius:3px;padding:4px 8px;font-size:12px;width:100%;min-width:60px;font-family:'JetBrains Mono',monospace}
+td input[type=text]:focus,td input[type=number]:focus{outline:none;border-color:var(--ghi-red)}
+.search-wrap{position:relative}
+.search-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--ghi-gray-300);border-top:none;border-radius:0 0 4px 4px;max-height:280px;overflow-y:auto;z-index:200;box-shadow:var(--shadow-2)}
+.search-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--ghi-gray-100)}
+.search-item:hover{background:var(--ghi-gray-100)}
+.search-item-name{font-weight:600;font-size:13px}
+.search-item-meta{font-size:11px;color:var(--ghi-gray);margin-top:2px}
+.mat-info-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--ghi-gray-100);border-radius:4px;font-size:13px;flex-wrap:wrap}
+.summary-display{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.summary-block{background:var(--ghi-graphite);color:#fff;border-radius:4px;padding:16px 24px;text-align:center;min-width:110px}
+.summary-block .val{font-size:40px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--ghi-neon);line-height:1}
+.summary-block .lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ghi-gray);margin-top:4px}
+.chart-wrap{position:relative;height:340px}
+.live-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:20px}
+.live-card{background:var(--ghi-graphite);color:#fff;border-radius:4px;padding:16px 20px}
+.live-card .lc-title{font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ghi-gray);margin-bottom:6px}
+.live-card .lc-value{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--ghi-neon)}
+.live-card .lc-sub{font-size:11px;color:var(--ghi-gray-300);margin-top:4px}
+.fin-banner{background:var(--ghi-graphite);color:#fff;border-radius:4px;padding:24px;display:none;flex-direction:column;gap:16px;margin-bottom:24px}
+.fin-banner.show{display:flex}
+.fin-title{font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em}
+.fin-btns{display:flex;gap:12px;flex-wrap:wrap}
+.radio-group{display:flex;flex-direction:column;gap:8px}
+.section-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--ghi-gray);padding:0 0 8px;border-bottom:1px solid var(--ghi-gray-200);margin-bottom:14px}
+.toggle-wrap{display:flex;align-items:center;gap:10px}
+.toggle{position:relative;width:40px;height:22px;display:inline-block}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--ghi-gray-300);border-radius:22px;transition:0.3s}
+.toggle-slider::before{position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:0.3s}
+.toggle input:checked+.toggle-slider{background:var(--ghi-red)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(18px)}
+@media(max-width:640px){.form-grid{grid-template-columns:1fr}.summary-block .val{font-size:26px}}
+</style>
+</head>
+<body>
+
+<header id="app-header">
+  <div class="logo-wrap">
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="5" fill="#C0022C"/>
+      <path d="M20 5 C17 10 13 14 13 19 C13 24 16 27 18 28 C17 25 17.5 22 19.5 21 C19.5 23.5 20.5 26 23 28 C25 25.5 26 22.5 25 19 C24 15 21 10 20 5Z" fill="white"/>
+      <path d="M14.5 29 C14.5 32.5 17 35 20 35.5 C23 35 25.5 32.5 25.5 29 C23.5 30.8 21.5 31.5 20 31.5 C18.5 31.5 16.5 30.8 14.5 29Z" fill="white" opacity="0.65"/>
+      <text x="20" y="14" text-anchor="middle" font-family="Arial Black,sans-serif" font-size="7" font-weight="900" fill="white" opacity="0">GHI</text>
+    </svg>
+    <div>
+      <div class="logo-text">GHI Smart Furnaces</div>
+      <div class="logo-sub">Secado de Refractarios — v2.0 Unificado</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-outline btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.25)" onclick="saveProject()">&#128190; Guardar</button>
+    <button class="btn btn-outline btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.25)" onclick="loadProject()">&#128194; Cargar</button>
+  </div>
+</header>
+
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="showTab(0)" id="tab0">&#9881; Configuración</button>
+  <button class="tab-btn" onclick="showTab(1)" id="tab1">&#128200; Curva de Secado</button>
+  <button class="tab-btn" onclick="showTab(2)" id="tab2">&#128203; Registro Hora-Hora</button>
+</nav>
+
+<!-- ===== TAB 0: CONFIGURACIÓN ===== -->
+<div class="tab-panel active" id="panel0">
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">A — Búsqueda de Material</span></div>
+    <div class="card-body">
+      <div class="form-grid" style="grid-template-columns:1fr auto;align-items:end">
+        <div class="form-group">
+          <label class="form-label">Buscar material refractario (nombre o marca)</label>
+          <div class="search-wrap">
+            <input type="text" id="mat-search" class="form-input" placeholder="Ej: PHLOX 1500, CALDERYS, ALKON CAST..." oninput="searchMaterial()" autocomplete="off">
+            <div class="search-dropdown" id="search-dropdown" style="display:none"></div>
+          </div>
+        </div>
+        <div>
+          <button class="btn btn-outline" onclick="clearMaterial()">Sin material / Manual</button>
+        </div>
+      </div>
+      <div id="mat-info" style="display:none;margin-top:12px">
+        <div class="mat-info-row">
+          <span id="mat-badge"></span>
+          <strong id="mat-name-display" style="font-size:13px"></strong>
+          <span style="color:var(--ghi-gray);font-size:12px" id="mat-brand-display"></span>
+          <span id="mat-temp-display" class="mono" style="margin-left:auto;font-size:12px;color:var(--ghi-red)"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">B — Propiedades del Material</span></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Tipo de hormigón refractario</label>
+          <select id="castable-type" class="form-select" onchange="onTypeChange()">
+            <option value="CC">CC — Convencional</option>
+            <option value="LCC" selected>LCC — Bajo Cemento</option>
+            <option value="ULCC">ULCC — Ultra Bajo Cemento</option>
+            <option value="SOL_GEL">SOL_GEL — Sol-Gel</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tasa base de calentamiento (°C/h)</label>
+          <input type="number" id="binder-rate" class="form-input mono" value="17" min="1" max="200" step="0.5">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Agua estimada (L/100 kg)</label>
+          <input type="number" id="water-content" class="form-input mono" value="8.5" step="0.1" readonly style="background:var(--ghi-gray-100);color:var(--ghi-gray)">
+        </div>
+        <div class="form-group" style="justify-content:flex-end;padding-top:16px;gap:10px">
+          <label class="form-check"><input type="checkbox" id="anti-wetting"> <span>Anti-Wetting (factor ×0.6)</span></label>
+          <label class="form-check"><input type="checkbox" id="has-fibers"> <span>Fibras PP (factor ×1.5 &gt;200°C)</span></label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">C — Temperaturas y Curva de Secado</span></div>
+    <div class="card-body">
+      <div class="form-grid" style="margin-bottom:18px">
+        <div class="form-group">
+          <label class="form-label">Temperatura de inicio (°C)</label>
+          <input type="number" id="temp-start" class="form-input mono" value="21" min="0" max="200">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Temperatura final objetivo (°C)</label>
+          <input type="number" id="temp-end" class="form-input mono" value="815" min="100" max="2000">
+        </div>
+      </div>
+      <div class="section-hdr">Curva predefinida</div>
+      <div class="radio-group">
+        <label class="form-check"><input type="radio" name="preset" value="UR14_STANDARD" checked onchange="onPresetChange()"> <strong>UR-14 Estándar</strong> — Mesetas: 121°C · 260°C · 538°C → 815°C</label>
+        <label class="form-check"><input type="radio" name="preset" value="GHI_TFA5" onchange="onPresetChange()"> <strong>GHI TFA-5</strong> — Mesetas: 150°C · 350°C · 500°C → 815°C</label>
+        <label class="form-check"><input type="radio" name="preset" value="DEGUISA_PHLOX" onchange="onPresetChange()"> <strong>DEGUISA PHLOX</strong> — Mesetas: 150°C · 350°C · 600°C → 800°C</label>
+        <label class="form-check"><input type="radio" name="preset" value="GHI_RAPIDA" onchange="onPresetChange()"> <strong>GHI Rápida</strong> — Mesetas: 150°C · 350°C → 815°C</label>
+        <label class="form-check"><input type="radio" name="preset" value="CUSTOM" onchange="onPresetChange()"> <strong>Personalizada</strong> — definir mesetas manualmente</label>
+      </div>
+      <div id="custom-section" style="display:none;margin-top:14px">
+        <div class="form-group">
+          <label class="form-label">Temperaturas de meseta personalizadas (°C, separadas por coma)</label>
+          <input type="text" id="custom-holds" class="form-input mono" placeholder="Ej: 150, 300, 600">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">D — Geometría y Propiedades Térmicas</span></div>
+    <div class="card-body">
+      <div class="form-grid" style="align-items:end">
+        <div class="form-group">
+          <label class="form-label">Espesor capa densa (mm)</label>
+          <input type="number" id="dense-thickness" class="form-input mono" value="150" min="10" max="3000">
+        </div>
+        <div class="form-group" style="justify-content:flex-end;padding-bottom:4px">
+          <div class="toggle-wrap">
+            <label class="toggle"><input type="checkbox" id="insulating-toggle" onchange="onInsulatingToggle()"><span class="toggle-slider"></span></label>
+            <span style="font-weight:600;font-size:13px">Capa aislante adicional</span>
+          </div>
+        </div>
+      </div>
+      <div id="insulating-section" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--ghi-gray-200)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Espesor aislante (mm)</label>
+            <input type="number" id="insulating-thickness" class="form-input mono" value="75" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Factor aislante (h/mm)</label>
+            <input type="number" id="insulating-factor" class="form-input mono" value="0.02" step="0.001" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Conductividad k (W/m·K)</label>
+            <input type="number" id="conductivity" class="form-input mono" value="1.2" step="0.01" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Densidad ρ (kg/m³)</label>
+            <input type="number" id="density" class="form-input mono" value="2800" step="10" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cp calor específico (kJ/kg·K)</label>
+            <input type="number" id="heat-capacity" class="form-input mono" value="0.9" step="0.01" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Número de Fourier</label>
+            <input type="number" id="fourier" class="form-input mono" value="0.25" step="0.01" min="0">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:16px">
+    <button class="btn btn-primary btn-block btn-lg" onclick="calculateAndGo()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      CALCULAR Y GENERAR CURVA DE SECADO &rarr;
+    </button>
+  </div>
+  <div id="config-alerts" style="margin-bottom:24px"></div>
+</div>
+
+<!-- ===== TAB 1: CURVA DE SECADO ===== -->
+<div class="tab-panel" id="panel1">
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">Configuración del Proyecto</span></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:1 / -1">
+          <label class="form-label">Nombre del proyecto / identificación</label>
+          <input type="text" id="project-name" class="form-input" placeholder="Ej: Horno N°3 — Colada bóveda completa" oninput="saveProjectData()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fecha inicio secado</label>
+          <input type="date" id="start-date" class="form-input" oninput="updateSummary();generarRegistroDesdeRampa();saveProjectData()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hora inicio</label>
+          <input type="time" id="start-time" class="form-input" value="08:00" oninput="updateSummary();generarRegistroDesdeRampa();saveProjectData()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">N° de termopares</label>
+          <select id="tc-count" class="form-select" onchange="onTCCountChange()">
+            <option value="2">2</option><option value="3">3</option><option value="4" selected>4</option>
+            <option value="5">5</option><option value="6">6</option><option value="7">7</option>
+            <option value="8">8</option><option value="9">9</option><option value="10">10</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <div class="form-label" style="margin-bottom:8px">Nombres de termopares (editar para personalizar)</div>
+        <div id="tc-names-wrap" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">Resumen de Duración Total del Secado</span></div>
+    <div class="card-body">
+      <div class="summary-display">
+        <div class="summary-block"><div class="val" id="sum-dias">0</div><div class="lbl">Días</div></div>
+        <div class="summary-block"><div class="val" id="sum-horas">0</div><div class="lbl">Horas</div></div>
+        <div class="summary-block"><div class="val" id="sum-minutos">0</div><div class="lbl">Minutos</div></div>
+        <div class="summary-block" style="min-width:220px"><div class="val" id="sum-fin" style="font-size:14px;padding-top:10px;color:#fff">—</div><div class="lbl">Fin estimado</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Tabla de Rampa</span>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="addManualRow()">+ Fila manual</button>
+        <button class="btn btn-outline btn-sm" onclick="recalcTable()">&#8635; Recalcular</button>
+      </div>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="tbl-wrap">
+        <table id="ramp-table">
+          <thead id="ramp-thead"></thead>
+          <tbody id="ramp-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">Gráfica — Curva Teórica de Secado</span></div>
+    <div class="card-body"><div class="chart-wrap"><canvas id="curve-chart"></canvas></div></div>
+  </div>
+
+  <div style="margin-bottom:24px">
+    <button class="btn btn-primary btn-block btn-lg" onclick="showTab(2)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      INICIAR SEGUIMIENTO HORA-HORA &rarr;
+    </button>
+  </div>
+</div>
+
+<!-- ===== TAB 2: REGISTRO HORA-HORA ===== -->
+<div class="tab-panel" id="panel2">
+
+  <div class="live-grid">
+    <div class="live-card">
+      <div class="lc-title">Duración total secado</div>
+      <div class="lc-value" id="live-duracion">—</div>
+      <div class="lc-sub">días · horas · minutos</div>
+    </div>
+    <div class="live-card">
+      <div class="lc-title">Fin estimado</div>
+      <div class="lc-value" id="live-fin" style="font-size:15px;padding-top:5px">—</div>
+      <div class="lc-sub">fecha y hora</div>
+    </div>
+    <div class="live-card">
+      <div class="lc-title">Fase actual</div>
+      <div class="lc-value" id="live-fase" style="font-size:15px;padding-top:5px">—</div>
+      <div class="lc-sub" id="live-fase-fin">fin de fase: —</div>
+    </div>
+    <div class="live-card">
+      <div class="lc-title">Reloj del sistema</div>
+      <div class="lc-value" id="live-clock">—</div>
+      <div class="lc-sub" id="live-date">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">Carga de Datos CSV (Termopar)</span></div>
+    <div class="card-body">
+      <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+        <div class="form-group" style="min-width:150px">
+          <label class="form-label">Termopar destino</label>
+          <select id="csv-tc-select" class="form-select"></select>
+        </div>
+        <div class="form-group" style="flex:1;min-width:220px">
+          <label class="form-label">Archivo CSV (sep=; · col0=timestamp · col1=temperatura)</label>
+          <input type="file" id="csv-file" accept=".csv,.txt" class="form-input" style="padding:5px">
+        </div>
+        <div>
+          <button class="btn btn-secondary" onclick="cargarCSV()">&#128194; Cargar CSV</button>
+        </div>
+      </div>
+      <div id="csv-status" style="margin-top:10px;font-size:12px;color:var(--ghi-gray);font-family:'JetBrains Mono',monospace"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Registro Hora-Hora</span>
+      <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="addExtraHour()">+ Hora extra</button>
+    </div>
+    <div class="card-body" style="padding:0">
+      <div class="tbl-wrap">
+        <table id="registro-table">
+          <thead id="registro-thead"></thead>
+          <tbody id="registro-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">Gráfica Comparativa — Teórica vs. Medida</span></div>
+    <div class="card-body"><div class="chart-wrap"><canvas id="registro-chart"></canvas></div></div>
+  </div>
+
+  <div class="fin-banner" id="fin-banner">
+    <div class="fin-title">&#10003; Secado Finalizado</div>
+    <div style="color:var(--ghi-gray-300);font-size:13px">Elige una opción de exportación o vuelve al inicio:</div>
+    <div class="fin-btns">
+      <button class="btn btn-success" onclick="exportExcel()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Exportar Excel (3 hojas)
+      </button>
+      <button class="btn btn-secondary" onclick="exportPDF()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Informe PDF (análisis desviaciones)
+      </button>
+      <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.3)" onclick="showTab(0)">&#8592; Volver a Configuración</button>
+    </div>
+  </div>
+
+  <div style="margin-bottom:24px">
+    <button class="btn btn-primary btn-block btn-lg" onclick="finSecado()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      FIN DE SECADO
+    </button>
+  </div>
+
+</div>
+
+<script>
+// ===================== DATABASE =====================
+// Base de datos de hormigones generada automáticamente
+// Total: 268 materiales únicos
+// Fecha: 2026-01-26T08:44:01.207Z
+
+const HormigonesDatabase = [
+  {
+    "name": "ALKON CAST SUPER 208 ALKON CAST MT 90",
+    "brand": "LEICA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1750°C | Al₂O₃: 88%",
+    "temperatura": 1750,
+    "al2o3": 88,
+    "densidad": null,
+    "codigo": "M00776"
+  },
+  {
+    "name": "ALUTIX AX-690 RT",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1700°C",
+    "temperatura": 1700,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00044"
+  },
+  {
+    "name": "CALDE SOL CAST M60",
+    "brand": "CALDE",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1650°C | Al₂O₃: 60%",
+    "temperatura": 1650,
+    "al2o3": 60,
+    "densidad": null,
+    "codigo": "M00003"
+  },
+  {
+    "name": "CALDE CAST GIBRAM",
+    "brand": "RENOLD",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1600°C | Al₂O₃: 82.5%",
+    "temperatura": 1600,
+    "al2o3": 82.5,
+    "densidad": 2950,
+    "codigo": "M01033"
+  },
+  {
+    "name": "CALDE CAST 1560",
+    "brand": "ALUMASA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1560°C | Al₂O₃: 80%",
+    "temperatura": 1560,
+    "al2o3": 80,
+    "densidad": 2600,
+    "codigo": "M01193"
+  },
+  {
+    "name": "ALKON CAST 204",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1550°C | Al₂O₃: 58%",
+    "temperatura": 1550,
+    "al2o3": 58,
+    "densidad": null,
+    "codigo": "M00620"
+  },
+  {
+    "name": "CALDE CAST LF 44 (ANTES PHLOX 1500 C SR)",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1500°C | Al₂O₃: 43%",
+    "temperatura": 1500,
+    "al2o3": 43,
+    "densidad": 2150,
+    "codigo": "M01385"
+  },
+  {
+    "name": "PHLOX 1500 C SR (CALDE CAST LF 44)",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1500°C | Al₂O₃: 43%",
+    "temperatura": 1500,
+    "al2o3": 43,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "PHLOX 1560 SR CALDE CAST",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1500°C | Al₂O₃: 43%",
+    "temperatura": 1500,
+    "al2o3": 43,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "HORMIGON PHLOX 1500 C SR (CALDE CAST LF 44) C SR",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1500°C | Al₂O₃: 43%",
+    "temperatura": 1500,
+    "al2o3": 43,
+    "densidad": null,
+    "codigo": "M00005"
+  },
+  {
+    "name": "PHLOX 1500 C SR  (CALDE CAST LF 44)",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1500°C | Al₂O₃: 43%",
+    "temperatura": 1500,
+    "al2o3": 43,
+    "densidad": null,
+    "codigo": "M00008"
+  },
+  {
+    "name": "CALDE CAST LF 44 (ANTES PHLOX 1500 C SR",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1500°C | Al₂O₃: 43%",
+    "temperatura": 1500,
+    "al2o3": 43,
+    "densidad": null,
+    "codigo": "M00010"
+  },
+  {
+    "name": "PHLOX 1560 SR CALDE CAS",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1500°C | Al₂O₃: 43%",
+    "temperatura": 1500,
+    "al2o3": 43,
+    "densidad": null,
+    "codigo": "M00010"
+  },
+  {
+    "name": "PHLOX 1500 SR CALDE CAST",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1500°C | Al₂O₃: 43%",
+    "temperatura": 1500,
+    "al2o3": 43,
+    "densidad": null,
+    "codigo": "M00012"
+  },
+  {
+    "name": "CALDE CAST LF 44 (ANTES PHLOX 1500 C SR))",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1500°C | Al₂O₃: 43%",
+    "temperatura": 1500,
+    "al2o3": 43,
+    "densidad": null,
+    "codigo": "M00017"
+  },
+  {
+    "name": "PHLOX 1500 C SR",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1500°C",
+    "temperatura": 1500,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00018"
+  },
+  {
+    "name": "PHLOX 1560 SR CALDE CAST - VORTEX",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1500°C",
+    "temperatura": 1500,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00024"
+  },
+  {
+    "name": "PHLOX 1560 SR",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1500°C",
+    "temperatura": 1500,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00024"
+  },
+  {
+    "name": "CALDE CAST MW 148 C/G (ANTES KERLITE 160 L)",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE | Temp máx: 1480°C | Al₂O₃: 56%",
+    "temperatura": 1480,
+    "al2o3": 56,
+    "densidad": null,
+    "codigo": "M00004"
+  },
+  {
+    "name": "CALDE CAST 112 C/G",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE | Temp máx: 1480°C | Al₂O₃: 56%",
+    "temperatura": 1480,
+    "al2o3": 56,
+    "densidad": null,
+    "codigo": "M00015"
+  },
+  {
+    "name": "OPTIMUM 204 CALDE CAST",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1400°C",
+    "temperatura": 1400,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00017"
+  },
+  {
+    "name": "ALKON FLOW OPTIMUM 303 (ALKON FLOW LB 85)",
+    "brand": "INGENOBA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1400°C",
+    "temperatura": 1400,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00021"
+  },
+  {
+    "name": "OPTIMUM 204 CALDE CAST - VORTEX",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1400°C",
+    "temperatura": 1400,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00023"
+  },
+  {
+    "name": "ALKON FLOW OPTIMUM 303- VORTEX",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1400°C",
+    "temperatura": 1400,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00029"
+  },
+  {
+    "name": "ALKON FLOW OPTIMUM 303",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1400°C",
+    "temperatura": 1400,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00082"
+  },
+  {
+    "name": "KERLITE 160 L (CALDE CAST MW 148 C/G)",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE | Temp máx: 1400°C",
+    "temperatura": 1400,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00098"
+  },
+  {
+    "name": "(CALDE CAST MW 140 C/G)",
+    "brand": "ALBERTO",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE | Temp máx: 1400°C | Al₂O₃: 55%",
+    "temperatura": 1400,
+    "al2o3": 55,
+    "densidad": 1400,
+    "codigo": "M01107"
+  },
+  {
+    "name": "(CALDE CAST MW 140 C/G) - SACO DE 25 KG",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE | Temp máx: 1400°C | Al₂O₃: 55%",
+    "temperatura": 1400,
+    "al2o3": 55,
+    "densidad": 1400,
+    "codigo": "M01259"
+  },
+  {
+    "name": "AISLANTE CALDE CAST MW 142 (SACO 20KG)",
+    "brand": "DEUBLIN",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE | Temp máx: 1400°C",
+    "temperatura": 1400,
+    "al2o3": null,
+    "densidad": 1500,
+    "codigo": "M01261"
+  },
+  {
+    "name": "ALKON CAST MF 44 (ANTES ALKON CAST CLASSIC 202)",
+    "brand": "ALKON",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE | Temp máx: 1400°C",
+    "temperatura": 1400,
+    "al2o3": null,
+    "densidad": 1200,
+    "codigo": "M01402"
+  },
+  {
+    "name": "CALDE CAST MW STRONG LITE C/G E (SACO DE 25 KG)",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE | Temp máx: 1300°C | Al₂O₃: 40%",
+    "temperatura": 1300,
+    "al2o3": 40,
+    "densidad": 1420,
+    "codigo": "M01260"
+  },
+  {
+    "name": "ALKON SOL CAST B 85",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1200°C | Al₂O₃: 85%",
+    "temperatura": 1200,
+    "al2o3": 85,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "ALKON SOL CAST B 65 (DE SECADO RAPIDO)",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1200°C | Al₂O₃: 85%",
+    "temperatura": 1200,
+    "al2o3": 85,
+    "densidad": null,
+    "codigo": "M00010"
+  },
+  {
+    "name": "BRIO 120 -DEGUISA-",
+    "brand": "MSS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE | Temp máx: 1200°C",
+    "temperatura": 1200,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00785"
+  },
+  {
+    "name": "KERLITE 120M (CALDE CAST LW 112 C/G)",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1100°C",
+    "temperatura": 1100,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M01339"
+  },
+  {
+    "name": "LW MIX 124 C/G  CALDECAST",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE | Temp máx: 1100°C | Al₂O₃: 27%",
+    "temperatura": 1100,
+    "al2o3": 27,
+    "densidad": 980,
+    "codigo": "M01341"
+  },
+  {
+    "name": "ALKON CAST MT90 ( ALKON CAST SUPER 208)",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1000°C",
+    "temperatura": 1000,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "CALDE CAST 1560 SR",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1000°C",
+    "temperatura": 1000,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "ALKON CAST CLASSIC 202 (MF44)",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1000°C | Al₂O₃: 6%",
+    "temperatura": 1000,
+    "al2o3": 6,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "ALKON CAST CLASSIC 202",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1000°C | Al₂O₃: 6%",
+    "temperatura": 1000,
+    "al2o3": 6,
+    "densidad": null,
+    "codigo": "M00004"
+  },
+  {
+    "name": "ALKON GUN C75",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1000°C",
+    "temperatura": 1000,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00010"
+  },
+  {
+    "name": "Alkon Cast Classic 202",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 1000°C",
+    "temperatura": 1000,
+    "al2o3": null,
+    "densidad": 2250,
+    "codigo": "M01277"
+  },
+  {
+    "name": "REOTIX RX-660 RT",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 600°C",
+    "temperatura": 600,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00004"
+  },
+  {
+    "name": "REOTIX RX-680",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 600°C",
+    "temperatura": 600,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00013"
+  },
+  {
+    "name": "REOTIX RX-650 RT",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO | Temp máx: 525°C",
+    "temperatura": 525,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "CALDE PLAST SUPER F AB E",
+    "brand": "DUGOPA",
+    "type": "CC",
+    "tipoHormigon": "PLÁSTICO",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "PLÁSTICO | Temp máx: 500°C",
+    "temperatura": 500,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00007"
+  },
+  {
+    "name": "DEFENSA REVESTIMIENTO HORMIGON RAN-R-B",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "ESLABON LATERAL MODELO 7475 S/P 17794-D PARA CADENA 24221-C EN ACERO REFRACTARIO S/AST M HK-40 25-20 S/COM",
+    "brand": "INGENOBA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "FAB. CALD. CARRO, CONTRAPESO BASTIDOR GRUPO Y HORMIGON",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "ALKON CAST F40",
+    "brand": "ALUMASA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "ALKON CAST MF 44",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "ALKON GUN A 60 E",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "ARMORMAX 70 SR -ALLIED MINERAL PRODUCTS-",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "CALDE CAST LX 58 E",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "CALDE CAST ML 55 S5",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "CALDE CAST ML55 S5",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "CALDE CAST UT 94",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "KERLITE 160 L  (CALDE CAST MW 148 C/G)",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "ONYX 15SF VESUVIUS",
+    "brand": "RENOLD",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "PLASTICO RAM 90 TR",
+    "brand": "HARBISON WALKER",
+    "type": "CC",
+    "tipoHormigon": "PLÁSTICO",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "PLÁSTICO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "PLASTICO RAM 90",
+    "brand": "VAINDUSA",
+    "type": "CC",
+    "tipoHormigon": "PLÁSTICO",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "PLÁSTICO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00050"
+  },
+  {
+    "name": "refractario   ALUGARD A95",
+    "brand": "VESUVIUS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00001"
+  },
+  {
+    "name": "ESLABON CENTRAL MODELO 7474 S/P 17793-D PARA CADENA 24221-C EN ACERO REFRACTARIO S/AST M HK-40 25-20 S/COM",
+    "brand": "ALUMASA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "130",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "AF 471 SR",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "BBX-300",
+    "brand": "VESUVIUS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "CALDE CAST M 28 D HR",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "CALDE GUN A 57",
+    "brand": "CALDE",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "GUNTIX GX-650 NEO",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "H-120",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "LW MIX 124 C/G  CALDE CAST",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "PHLOCAST M 32 SR",
+    "brand": "PRAXAIR",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "REFRACTARIO",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "ALUTIX AX-680",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "TIXOTROPICO (BAJO CONTENIDO EN CEMENTO) REOTIX® RX-690 RT-SL",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "TIXOTRÓPICO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "TIXOTRÓPICO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "Pieza hormigon Kerlite 140 M",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "Reparacion bloques refractario quemador grande",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "SET DE BROCAS PARA HORMIGON ARMADO",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "Trabajos de gunitado para dos hornos",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "TRASNPORTE LADRILLOS REFRACTARIOS",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00002"
+  },
+  {
+    "name": "ARENA REFRACTARIA FUSED SILICA",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00003"
+  },
+  {
+    "name": "ESLABON LATERAL MODELO 7476 S/P 17793-D PARA CADENA 24221-C EN ACERO REFRACTARIO S/AST M HK-40 25-20 S/COM",
+    "brand": "BILBOMICRO",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00003"
+  },
+  {
+    "name": "AISLANTE",
+    "brand": "Desconocido",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00003"
+  },
+  {
+    "name": "ALKON CAST HYMOR 80 AL",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00003"
+  },
+  {
+    "name": "ALKON CAST SUPER 208",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00003"
+  },
+  {
+    "name": "ALOSIL A-1400 E",
+    "brand": "INGENOBA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00011"
+  },
+  {
+    "name": "KERLITE 110 M. (CALDE CAST 124)",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00003"
+  },
+  {
+    "name": "LW MIX 124 C/G  CALDE C",
+    "brand": "CALDE",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00003"
+  },
+  {
+    "name": "RAM 90 TR -DEGUISA-",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00003"
+  },
+  {
+    "name": "refractario para salida de humos  CALDE CAST GIBRAM",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00003"
+  },
+  {
+    "name": "TRIAD 45 VESUVIUS",
+    "brand": "VESUVIUS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00003"
+  },
+  {
+    "name": "REFRACTARIO TIXOTROPICO (BAJO CONTENIDO EN CEMENTO) REOTIX® RX-645",
+    "brand": "RENOLD",
+    "type": "LCC",
+    "tipoHormigon": "TIXOTRÓPICO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "TIXOTRÓPICO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00091"
+  },
+  {
+    "name": "ASILANTE ALU-CAST 35 NO MOJABLE AL ALUMINIO",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00004"
+  },
+  {
+    "name": "BRIO 165",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00004"
+  },
+  {
+    "name": "GIBRAM SR",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00004"
+  },
+  {
+    "name": "KAORAM SR",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00004"
+  },
+  {
+    "name": "TITAN 165 AZ CS CON 5% AGUJAS DE ALUMINIO-CROMO",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00004"
+  },
+  {
+    "name": "H-140  para tapon quemador",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00004"
+  },
+  {
+    "name": "Materia refractario para rellenar ampliacion contrapiquera (HORMIGON ALKON CAST 204)",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00004"
+  },
+  {
+    "name": "PIEZA MOD. 7781(BLOQUE PIQUERA) HORMIGON PHLOX 188-G7 SR S/PL. S01-RHA-0613-001  -DEGUISA-",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00004"
+  },
+  {
+    "name": "PIEZA S/PL: 08433-H02-RHA-0613-016 MATERIAL: HORMIGON AISLANTE CALDE CAST MW 142",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00004"
+  },
+  {
+    "name": "Reparacion bloques refractario quemador + JUNTA QUEMADOR -6",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00004"
+  },
+  {
+    "name": "FABRICACION DEFENSA REVESTIDA HORMIGON",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00005"
+  },
+  {
+    "name": "ALKON CAST LB 85",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00005"
+  },
+  {
+    "name": "ALKON GUN A 57",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00005"
+  },
+  {
+    "name": "CALDE CAST HYMOR 2800",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00005"
+  },
+  {
+    "name": "CALDE CAST XL 106 C/GE",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00005"
+  },
+  {
+    "name": "CALDE CASTLF44",
+    "brand": "CALDE",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00005"
+  },
+  {
+    "name": "LW MIX 124 C/G  CALDECAST (SACO 20KG)",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00005"
+  },
+  {
+    "name": "LW MIX 124 C/G CALDECAST",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00005"
+  },
+  {
+    "name": "LW MIX 124 C/G",
+    "brand": "Desconocido",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00005"
+  },
+  {
+    "name": "PHLOCAST M 25 D SR",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00005"
+  },
+  {
+    "name": "para contrapeso",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00005"
+  },
+  {
+    "name": "PIEZA S/PL: 08433-H02-RHA-0613-017 MATERIAL: HORMIGON AISLANTE CALDE CAST MW 142",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00005"
+  },
+  {
+    "name": "ALKON CAST LB85",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00006"
+  },
+  {
+    "name": "ALKON CAST SUPER 208 ALKON CAST MT 90 S/P 9160-A MARCA 18",
+    "brand": "SUMINISTROS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00006"
+  },
+  {
+    "name": "CALDE CAST MC88",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00006"
+  },
+  {
+    "name": "LW MIX 124 C/G CALDE CAST",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00006"
+  },
+  {
+    "name": "LW MIX 124 C/G  CALDE",
+    "brand": "CALDE",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00006"
+  },
+  {
+    "name": "PIEZA S/PL: 08433-H02-RHA-0613-027 MATERIAL: HORMIGON AISLANTE CALDE CAST MW 142",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00006"
+  },
+  {
+    "name": "CONDUCTO",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00007"
+  },
+  {
+    "name": "GIBRAM",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00007"
+  },
+  {
+    "name": "KERLITE 110 M.",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00007"
+  },
+  {
+    "name": "LF 44",
+    "brand": "INGENOBA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00293"
+  },
+  {
+    "name": "PIEZA S/PL: 08433-H02-RHA-0613-028 MATERIAL: HORMIGON AISLANTE CALDE CAST MW 142",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00007"
+  },
+  {
+    "name": "208",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00008"
+  },
+  {
+    "name": "ALKON CAST MC 88",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00008"
+  },
+  {
+    "name": "CALDE CAST MW 140 CG",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00008"
+  },
+  {
+    "name": "CALDE CAST XL 106 C/G E",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00008"
+  },
+  {
+    "name": "CALDE CAST XL 106",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00008"
+  },
+  {
+    "name": "KERLITE 120M",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00008"
+  },
+  {
+    "name": "PHLOCAST M 28 D HR SR",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00008"
+  },
+  {
+    "name": "SPRAYCAST SIC 30 R",
+    "brand": "ALUMASA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00008"
+  },
+  {
+    "name": "PIEZA S/PL: 08433-H02-RHA-0613-084 MATERIAL: HORMIGON AISLANTE CALDE CAST MW 142",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00008"
+  },
+  {
+    "name": "ARENA REFRACTARIA",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00009"
+  },
+  {
+    "name": "KERLITE 130 M",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00009"
+  },
+  {
+    "name": "REFRABLOC C 31",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00009"
+  },
+  {
+    "name": "ALUMAX 75",
+    "brand": "STENFLEX",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00041"
+  },
+  {
+    "name": "PIEZA S/PL: 08433-H02-RHA-0613-085 MATERIAL: HORMIGON AISLANTE CALDE CAST MW 142",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00009"
+  },
+  {
+    "name": "AISLANTE CALDE CAST MW 140 (SACO 20KG)",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00010"
+  },
+  {
+    "name": "ALKON MW 12 (NO WET)",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00010"
+  },
+  {
+    "name": "CALDE CAST 140",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00010"
+  },
+  {
+    "name": "CALDE CAST HYMOR 2800  - TFA",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00010"
+  },
+  {
+    "name": "CALDE CAST LF44",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00010"
+  },
+  {
+    "name": "H-110",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00010"
+  },
+  {
+    "name": "PLASTICO RAM-90",
+    "brand": "Desconocido",
+    "type": "CC",
+    "tipoHormigon": "PLÁSTICO",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "PLÁSTICO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00010"
+  },
+  {
+    "name": "PIEZA S/PL: 08433-H02-RHA-0613-086 MATERIAL: HORMIGON AISLANTE CALDE CAST MW 142",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00010"
+  },
+  {
+    "name": "ALKON 443 SR",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00011"
+  },
+  {
+    "name": "GIBRAM SR  - TFA",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00011"
+  },
+  {
+    "name": "MT-90",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00011"
+  },
+  {
+    "name": "aislante",
+    "brand": "Desconocido",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00011"
+  },
+  {
+    "name": "MORTERO para ladrillo refractario",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00011"
+  },
+  {
+    "name": "PIEZA S/PL: 08433-H02-RHA-0613-103 MATERIAL: HORMIGON AISLANTE CALDE CAST MW 142",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00011"
+  },
+  {
+    "name": "ALKON CAST SUPER 208 (MT 90)",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00012"
+  },
+  {
+    "name": "ALUGARD A95 -VESUVIUS-",
+    "brand": "VESUVIUS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00012"
+  },
+  {
+    "name": "KERLITE-120 M",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00012"
+  },
+  {
+    "name": "LW MIX 124 C/G  CALDE C- TFA",
+    "brand": "CALDE",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00012"
+  },
+  {
+    "name": "OPTIMUM 204 CALDE CAST - TFA",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00013"
+  },
+  {
+    "name": "XL106",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00013"
+  },
+  {
+    "name": "REOTIX RX-650 RT",
+    "brand": "VAINDUSA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00040"
+  },
+  {
+    "name": "PIEZAS DE BOCA HORMIGON TITAN 165 AZ CS",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00013"
+  },
+  {
+    "name": "ALKON CAST MW12",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00014"
+  },
+  {
+    "name": "ALOSIL® A-124",
+    "brand": "ALUMASA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00092"
+  },
+  {
+    "name": "KERLITE 140M",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00014"
+  },
+  {
+    "name": "PHLOX 1560 SR CALDE CAS- TFA",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00014"
+  },
+  {
+    "name": "aislante h-110",
+    "brand": "Desconocido",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00015"
+  },
+  {
+    "name": "aluminoso C-150",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00016"
+  },
+  {
+    "name": "CALDE CAST 1560)",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00016"
+  },
+  {
+    "name": "F40",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00016"
+  },
+  {
+    "name": "BLOQUE REFRACTARIO para quemador 4425-8A",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00017"
+  },
+  {
+    "name": "DESENCOFRANTE DE HORMIGON RENOCAST DES 20 HP",
+    "brand": "Desconocido",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00018"
+  },
+  {
+    "name": "CALDE CAST PHLOX 1560 SR",
+    "brand": "STENFLEX",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00018"
+  },
+  {
+    "name": "LB85",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00018"
+  },
+  {
+    "name": "ALKON CAST MF44",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00019"
+  },
+  {
+    "name": "TITAN 165 AZ CS",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00020"
+  },
+  {
+    "name": "Calde Cast LF 44 (Phlox 1500 C)",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00021"
+  },
+  {
+    "name": "CALDE PLAST SUPER F AB",
+    "brand": "CALDE",
+    "type": "CC",
+    "tipoHormigon": "PLÁSTICO",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "PLÁSTICO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00021"
+  },
+  {
+    "name": "LW MIX 124 C/G  CALDE - VORTEX",
+    "brand": "CALDE",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00022"
+  },
+  {
+    "name": "FILTRO CERAMICO DE CAJA PARA CANAL DE TRASVASE DE ALUMINIO. CAUDAL 20tN/H. ESTRUCTURA METALICA CON REVESTIMIENTO DE REFRACTARIO. FILTRO CERAMICO DE 30PPI",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00025"
+  },
+  {
+    "name": "ALKON GUN C 75",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00025"
+  },
+  {
+    "name": "Alkon Cast MT 90 (Alkon Cast Super 208)",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00026"
+  },
+  {
+    "name": "CALDE SPRAYCAST SIC 30 R",
+    "brand": "CALDE",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00026"
+  },
+  {
+    "name": "ALKON CAST OPTIMUM 204",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00027"
+  },
+  {
+    "name": "ALKON CAST MW 14 C/G",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00028"
+  },
+  {
+    "name": "CALDE™CAST LF 44- VORTEX",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00028"
+  },
+  {
+    "name": "ALKON CAST SUPER 208- VORTEX",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00030"
+  },
+  {
+    "name": "C-150",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00030"
+  },
+  {
+    "name": "KERLITE 120 M",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00031"
+  },
+  {
+    "name": "TRIAD 45",
+    "brand": "VESUVIUS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00032"
+  },
+  {
+    "name": "Sustitución de 3 piezas de fundición marco puerta para horno RAN (después de estar hormigonada ésta)",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00032"
+  },
+  {
+    "name": "TRIAD 70 VESUVIUS",
+    "brand": "INGENOBA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00033"
+  },
+  {
+    "name": "ALKON CAST XL 106 C/GE",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00034"
+  },
+  {
+    "name": "KERLITE 120 M. (CALDE CAST LW 112 C/G)",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00034"
+  },
+  {
+    "name": "TRABAJOS REFRACTARIOS",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00034"
+  },
+  {
+    "name": "REFRACT.ALKON CAST CLAS",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00041"
+  },
+  {
+    "name": "BLOQUE REFRACTARIO PN1230 para quemador 4425-7",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00042"
+  },
+  {
+    "name": "DISCO REFRACTARIO PARA QUEMADOR 4425-7A Y 7B",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00042"
+  },
+  {
+    "name": "REOTIX RX-690 RT S-L",
+    "brand": "MEDIA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00042"
+  },
+  {
+    "name": "AGUJA REFRACTARIA AC-A (2%)",
+    "brand": "ALONSO",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00043"
+  },
+  {
+    "name": "DISCO REFRACTARIO PARA QUEMADOR 4425-6",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00043"
+  },
+  {
+    "name": "REOTIX RX-670 A",
+    "brand": "PRAXAIR",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00094"
+  },
+  {
+    "name": "ALOSIL® A-106",
+    "brand": "BILBOMICRO",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00093"
+  },
+  {
+    "name": "ALUSIL A-40",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00045"
+  },
+  {
+    "name": "PIEZA REFRACTARIA BOCA HORNO",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00049"
+  },
+  {
+    "name": "CALDE PLAST SUPERAL X AB",
+    "brand": "VAINDUSA",
+    "type": "CC",
+    "tipoHormigon": "PLÁSTICO",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "PLÁSTICO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00052"
+  },
+  {
+    "name": "TIXOTRÓPICO ESPECIAL ANTIHUMECTANTE DE ALUMINIO, BAJO CONTENIDO EN CEMENTO ALUMAX 75",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "TIXOTRÓPICO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "TIXOTRÓPICO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00064"
+  },
+  {
+    "name": "REFRACTARIO TIXOTROPICO (BAJO CONTENIDO EN CEMENTO) REOTIX® RX-650",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "TIXOTRÓPICO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "TIXOTRÓPICO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00067"
+  },
+  {
+    "name": "TIXOTRÓPICO ESPECIAL ANTIHUMECTANTE DE ALUMINIO, BAJO CONTENIDO EN CEMENTO ALUTIX AX-690 RT",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "TIXOTRÓPICO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "TIXOTRÓPICO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00069"
+  },
+  {
+    "name": "KERLITE 160 L",
+    "brand": "CALDERYS",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00070"
+  },
+  {
+    "name": "CALDE CAST M 28 D HR (BOVEDA)",
+    "brand": "INGENOBA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00074"
+  },
+  {
+    "name": "TIXOTROPICO (BAJO CONTENIDO EN CEMENTO) REOTIX® RX-690 RT",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "TIXOTRÓPICO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "TIXOTRÓPICO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00074"
+  },
+  {
+    "name": "ALKON CAST 204 (ZONA PIQUERA)",
+    "brand": "PRAXAIR",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00075"
+  },
+  {
+    "name": "ALKON CAST 204 (ZONA ENTRADA BAÑO)",
+    "brand": "EUROSOURCE",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00076"
+  },
+  {
+    "name": "REFRACTARIO AISLANTE GUNITABLE ALOSIL® A-124 G",
+    "brand": "Desconocido",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00076"
+  },
+  {
+    "name": "ALKON CAST 204 (PAREDES)",
+    "brand": "GOUDA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00077"
+  },
+  {
+    "name": "REFRACTARIO AISLANTE GUNITABLE ALOSIL® A-106 G",
+    "brand": "Desconocido",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00077"
+  },
+  {
+    "name": "ALKON CAST 204 (TAPONES)",
+    "brand": "RENOLD",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00078"
+  },
+  {
+    "name": "BBX-300 (EXTRA)",
+    "brand": "VESUVIUS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00078"
+  },
+  {
+    "name": "ALKON CAST MF 44 (ANTES ALKON CAST CLASSIC 202) (EXTRA)",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00080"
+  },
+  {
+    "name": "ENSAYOS DE RESISTENCIA A COMPRESION, COMPOSICION QUIMICA Y DENSIDAD APARENTE EN PROBETAS DE HORMIGON DE REVESTIMIENTO",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00082"
+  },
+  {
+    "name": "REFRACTARIO ESPECIAL ALUMINIO ANTIHUMECTANTE ALUSIL A-1400",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00085"
+  },
+  {
+    "name": "AMPLIACION PEDIDO - HORMIGON CALDE CAST M28 D HR225",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00089"
+  },
+  {
+    "name": "ALUSIL A-1400",
+    "brand": "GOUDA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00090"
+  },
+  {
+    "name": "PIEZA MOD. 7781(BLOQUE PIQUERA) HORMIGON PHLOX 188-G7 SR (CALDE CAST LT 98) S/PL. S01-RHA-0613-001  -DEGUISA-",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00099"
+  },
+  {
+    "name": "ALUGARD A95  -VESUVIUS-",
+    "brand": "VESUVIUS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00102"
+  },
+  {
+    "name": "REOTIX RX-690 RT",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00170"
+  },
+  {
+    "name": "AMPLIACION: CAMBIO MATERIAL HORMIGON",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00239"
+  },
+  {
+    "name": "METPUMP IPSX AL MG",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00269"
+  },
+  {
+    "name": "METPUMP C-181 T",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00270"
+  },
+  {
+    "name": "METPUMP RH65",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00271"
+  },
+  {
+    "name": "METPUMP ASX 60 AL MG",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00272"
+  },
+  {
+    "name": "METPUMP ASX 50 AL",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00273"
+  },
+  {
+    "name": "LIGHTWEIGHT PUMPABLE 80",
+    "brand": "Desconocido",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00274"
+  },
+  {
+    "name": "E.CAST LW105-1-2",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00275"
+  },
+  {
+    "name": "ALKON F40",
+    "brand": "ALUMASA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00289"
+  },
+  {
+    "name": "OPTIMUM 204",
+    "brand": "BILBOMICRO",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00290"
+  },
+  {
+    "name": "BLOQUES QUEMADORES",
+    "brand": "GOUDA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00296"
+  },
+  {
+    "name": "INTERMEDIO TAPA BOVEDA CAMARA LIMPIA",
+    "brand": "BILBOMICRO",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00299"
+  },
+  {
+    "name": "SUPERIOR TAPA BOVEDA CAMARA LIMPIA",
+    "brand": "INGENOBA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00300"
+  },
+  {
+    "name": "GIBRAM TAPA BOVEDA CAMARA SUCIA",
+    "brand": "RENOLD",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00304"
+  },
+  {
+    "name": "INTERMEDIO TAPA BOVEDA CAMARA SUCIA",
+    "brand": "BILBOMICRO",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00307"
+  },
+  {
+    "name": "PARTE SUPERIOR TAPA BOVEDA CAMARA SUCIA",
+    "brand": "INGENOBA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00308"
+  },
+  {
+    "name": "LF 44 TAPA BOVEDA CAMARA SUCIA",
+    "brand": "ALUMASA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00309"
+  },
+  {
+    "name": "CAJERA QUEMADOR GAS",
+    "brand": "RENOLD",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00314"
+  },
+  {
+    "name": "OPTIMUM 204 TAPA FRONTAL",
+    "brand": "ALUMASA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00319"
+  },
+  {
+    "name": "LF44 TAPA FRONTAL",
+    "brand": "BILBOMICRO",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00320"
+  },
+  {
+    "name": "BLOQUE QUEMADOR INDAUX",
+    "brand": "INGENOBA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00323"
+  },
+  {
+    "name": "MATRIPUMP AR 61",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00339"
+  },
+  {
+    "name": "TITAN 165 AZ CS CON 5% AGUJAS DE ALUMINA-CROMO",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00379"
+  },
+  {
+    "name": "140M KERLITE (SACO 20KG)",
+    "brand": "CALDERYS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00432"
+  },
+  {
+    "name": "TIXOTROPICO (BAJO CONTENIDO EN CEMENTO) REOTIX® RX-657 ZSI S-L",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "TIXOTRÓPICO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "TIXOTRÓPICO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00607"
+  },
+  {
+    "name": "CALDE CAST MW 138",
+    "brand": "BILBOMICRO",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00749"
+  },
+  {
+    "name": "DESMOLDEANTE HORMIGON DES 20 HP",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00768"
+  },
+  {
+    "name": "OPTIMUM 204 CALDE CAST (SACO 25KG)",
+    "brand": "EUROSOURCE",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00784"
+  },
+  {
+    "name": "LW MIX 124 C/G  CALDECAST (SACO 25KG)",
+    "brand": "MEDIA",
+    "type": "CC",
+    "tipoHormigon": "AISLANTE",
+    "rate": 25,
+    "water": 13,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "AISLANTE",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00787"
+  },
+  {
+    "name": "NEWTRY HT-225 - Probador portátil de martillo de rebote de hormigón de 10 a 60 Mpa Martillo Schmidt",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M00940"
+  },
+  {
+    "name": "PIEZA HORMIGON DE LANZA PRINCIPAL DE GAS NATURAL",
+    "brand": "ALUMASA",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M01192"
+  },
+  {
+    "name": "PUNTA C/PL. 3,4x60 ACERO (HORMIGON)",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M01215"
+  },
+  {
+    "name": "PUNTA C/PL. 3,4x40 ACERO (HORMIGON)",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M01216"
+  },
+  {
+    "name": "BBX-300 VESUVIUS",
+    "brand": "VESUVIUS",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M01270"
+  },
+  {
+    "name": "ALKON CAST LV 75",
+    "brand": "ALKON",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M01"
+  },
+  {
+    "name": "CALDE SOL CAST B 86 G10 (SECADO RAPIDO)",
+    "brand": "BILBOMICRO",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M02790"
+  },
+  {
+    "name": "REPUESTO MEZCLADORA (HORMIGONERA) MIX-750 “MONT.RASCH.PEROFERICO M.680 R1”     COD.  3211759     MARCA: 30",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M04437"
+  },
+  {
+    "name": "CORREA MIX-750 (REPUESTO HORMIGONERA)",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M04537"
+  },
+  {
+    "name": "DIDURIT A93AL-15-DE -RHI MAGNESITA-",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M06"
+  },
+  {
+    "name": "REFRACTARIO TIXOTROPICO (BAJO CONTENIDO EN CEMENTO) REOTIX® RX-670 A",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "TIXOTRÓPICO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "TIXOTRÓPICO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M12"
+  },
+  {
+    "name": "DESENCOFRANTE DE HORMIGON RENOCAST DES 42",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "DENSO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "DENSO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M16"
+  },
+  {
+    "name": "TIXOTROPICO (BAJO CONTENIDO EN CEMENTO) REOTIX® RX-690 RT + 2% FIBRA",
+    "brand": "Desconocido",
+    "type": "LCC",
+    "tipoHormigon": "TIXOTRÓPICO",
+    "rate": 17,
+    "water": 8.5,
+    "hasFibers": false,
+    "hasAntiWetting": false,
+    "description": "TIXOTRÓPICO",
+    "temperatura": null,
+    "al2o3": null,
+    "densidad": null,
+    "codigo": "M20"
+  }
+];
+
+
+// ===================== CONSTANTS =====================
+const CRITICAL_ZONE_START = 110;
+const CRITICAL_ZONE_END = 350;
+const FIBER_ACTIVATION_TEMP = 200;
+const MAX_CRITICAL_ZONE_RATE = 15;
+const ANTI_WETTING_FACTOR = 0.6;
+const FIBER_BONUS_FACTOR = 1.5;
+const LCC_PENALTY_FACTOR = 0.8;
+const THICKNESS_THRESHOLD_MEDIUM = 300;
+const THICKNESS_THRESHOLD_MASSIVE = 500;
+const MIN_HOLD_MEDIUM = 24;
+const MIN_HOLD_MASSIVE = 60;
+const BinderRateByType = { CC:25, LCC:17, ULCC:45, SOL_GEL:55 };
+const PresetCurves = {
+  UR14_STANDARD:{ name:'UR-14 Estándar', holds:[121,260,538], targetTemp:815 },
+  GHI_TFA5:     { name:'GHI TFA-5',      holds:[150,350,500], targetTemp:815 },
+  DEGUISA_PHLOX:{ name:'DEGUISA PHLOX',  holds:[150,350,600], targetTemp:800 },
+  GHI_RAPIDA:   { name:'GHI Rápida',     holds:[150,350],     targetTemp:815 }
+};
+const HoldTimeFactors = {121:1.0,150:1.0,250:0.8,260:0.8,350:0.8,500:0.9,538:1.0,600:1.0,815:1.0};
+const TC_COLORS = ['#3b82f6','#22c55e','#f59e0b','#a855f7','#ec4899','#06b6d4','#f97316','#84cc16','#6366f1','#14b8a6'];
+
+// ===================== APP STATE =====================
+const appState = {
+  segments:[],totalHours:0,alerts:[],config:null,
+  tcCount:4,tcNames:['TC1','TC2','TC3','TC4'],
+  registroRows:[],csvData:{},
+  curveChartInst:null,registroChartInst:null,
+  selectedMaterial:null
+};
+
+// ===================== UTILS =====================
+const fmt2 = n => String(n).padStart(2,'0');
+const fmtDate = d => `${d.getFullYear()}-${fmt2(d.getMonth()+1)}-${fmt2(d.getDate())}`;
+const fmtTime = d => `${fmt2(d.getHours())}:${fmt2(d.getMinutes())}`;
+const fmtDateTimeFull = d => `${fmtDate(d)} ${fmtTime(d)}`;
+
+function hoursToHMI(h){
+  const m = Math.round(h*60);
+  return { dias:Math.floor(m/1440), horas:Math.floor((m%1440)/60), minutos:m%60 };
+}
+
+function addDateTimeHours(dateStr,timeStr,hoursToAdd){
+  const [y,mo,da]=dateStr.split('-').map(Number);
+  const [hh,mm]=timeStr.split(':').map(Number);
+  const d=new Date(y,mo-1,da,hh,mm,0);
+  d.setMinutes(d.getMinutes()+Math.round(hoursToAdd*60));
+  return d;
+}
+
+function getHoldTimeFactor(temp){
+  const keys=Object.keys(HoldTimeFactors).map(Number);
+  let closest=keys[0],minDiff=Math.abs(temp-keys[0]);
+  for(const k of keys){ const diff=Math.abs(temp-k); if(diff<minDiff){minDiff=diff;closest=k;} }
+  return HoldTimeFactors[closest];
+}
+
+function getSafeRateAtTemp(temp,config){
+  let rate=config.binderRate;
+  if(config.castableType==='LCC'||config.castableType==='ULCC') rate*=LCC_PENALTY_FACTOR;
+  if(config.hasAntiWetting) rate*=ANTI_WETTING_FACTOR;
+  if(config.hasFibers&&temp>FIBER_ACTIVATION_TEMP) rate*=FIBER_BONUS_FACTOR;
+  if(temp>=CRITICAL_ZONE_START&&temp<=CRITICAL_ZONE_END) rate=Math.min(rate,MAX_CRITICAL_ZONE_RATE);
+  return Math.max(rate,0.5);
+}
+
+function calculateHoldDuration(config,holdTemp){
+  const thicknessInches=config.denseThickness/25.4;
+  const factorT=getHoldTimeFactor(holdTemp);
+  let baseHoldTime=Math.max(thicknessInches*factorT,1);
+  let insulatingTime=0,delayTime=0;
+  if(config.isInsulatingEnabled){
+    insulatingTime=config.insulatingThickness*config.insulatingFactor;
+    const k=config.conductivity,rho=config.density,cpJ=config.heatCapacity*1000;
+    const thicknessM=config.denseThickness/1000;
+    if(k>0&&rho>0&&cpJ>0){
+      const alpha=k/(rho*cpJ);
+      delayTime=(config.fourier*Math.pow(thicknessM,2))/alpha/3600;
+    }
+  }
+  return baseHoldTime+delayTime+insulatingTime;
+}
+
+function getTempAtHour(segments,hour){
+  if(!segments||segments.length===0) return 0;
+  let elapsed=0;
+  for(const seg of segments){
+    if(hour<=elapsed+seg.duration){
+      const t=hour-elapsed;
+      if(seg.type==='MESETA') return seg.tempStart;
+      return seg.tempStart+(t/seg.duration)*(seg.tempEnd-seg.tempStart);
+    }
+    elapsed+=seg.duration;
+  }
+  return segments[segments.length-1].tempEnd;
+}
+
+function getCurrentPhase(segments,hour){
+  let elapsed=0;
+  for(let i=0;i<segments.length;i++){
+    const seg=segments[i];
+    if(hour<=elapsed+seg.duration) return {seg,idx:i,endHour:elapsed+seg.duration};
+    elapsed+=seg.duration;
+  }
+  return null;
+}
+
+// ===================== CALCULATE PROFILE =====================
+function calculateProfile(config){
+  const alerts=[];
+  if(config.castableType==='ULCC'&&!config.hasFibers)
+    alerts.push({type:'danger',msg:'ULCC sin fibras PP: alto riesgo de spalling explosivo. Se recomienda añadir fibras PP al 0.1–0.3% en peso.'});
+  if(config.hasAntiWetting)
+    alerts.push({type:'warning',msg:'Material Anti-Wetting detectado: tasa de calentamiento reducida ×0.6 en todas las fases.'});
+  if(config.denseThickness>THICKNESS_THRESHOLD_MASSIVE)
+    alerts.push({type:'info',msg:`Espesor masivo (${config.denseThickness} mm): mínimo ${MIN_HOLD_MASSIVE}h de curado final recomendado.`});
+  else if(config.denseThickness>THICKNESS_THRESHOLD_MEDIUM)
+    alerts.push({type:'info',msg:`Espesor medio-grueso (${config.denseThickness} mm): mínimo ${MIN_HOLD_MEDIUM}h de curado final recomendado.`});
+
+  const forcedFinalHoldMin=config.denseThickness>THICKNESS_THRESHOLD_MASSIVE?MIN_HOLD_MASSIVE:
+                            config.denseThickness>THICKNESS_THRESHOLD_MEDIUM?MIN_HOLD_MEDIUM:0;
+  const holdTemps=[...config.holds];
+  const targetTemp=config.targetTemp;
+  const boundaries=[CRITICAL_ZONE_START,FIBER_ACTIVATION_TEMP,CRITICAL_ZONE_END].sort((a,b)=>a-b);
+  let currentTemp=config.tempStart;
+  const rawSegments=[];
+
+  for(let hi=0;hi<holdTemps.length+1;hi++){
+    const nextHoldTemp=hi<holdTemps.length?holdTemps[hi]:targetTemp;
+    if(nextHoldTemp<=currentTemp) continue;
+    const subPoints=[currentTemp];
+    for(const b of boundaries){ if(b>currentTemp&&b<nextHoldTemp) subPoints.push(b); }
+    subPoints.push(nextHoldTemp);
+    const subSegs=[];
+    for(let si=0;si<subPoints.length-1;si++){
+      const from=subPoints[si],to=subPoints[si+1];
+      const midTemp=(from+to)/2;
+      const rate=getSafeRateAtTemp(midTemp,config);
+      subSegs.push({type:'RAMPA',tempStart:from,tempEnd:to,rate,duration:(to-from)/rate});
+    }
+    if(subSegs.length>0){
+      const totalDT=nextHoldTemp-currentTemp;
+      const totalDur=subSegs.reduce((s,ss)=>s+ss.duration,0);
+      rawSegments.push({type:'RAMPA',tempStart:currentTemp,tempEnd:nextHoldTemp,rate:totalDT/totalDur,duration:totalDur});
+    }
+    currentTemp=nextHoldTemp;
+    if(hi<holdTemps.length){
+      const holdDur=calculateHoldDuration(config,holdTemps[hi]);
+      rawSegments.push({type:'MESETA',tempStart:holdTemps[hi],tempEnd:holdTemps[hi],rate:0,duration:holdDur});
+    }
+  }
+  const finalHoldDur=Math.max(forcedFinalHoldMin,calculateHoldDuration(config,targetTemp));
+  rawSegments.push({type:'MESETA',tempStart:targetTemp,tempEnd:targetTemp,rate:0,duration:finalHoldDur});
+
+  let accum=0;
+  for(let i=0;i<rawSegments.length;i++){
+    rawSegments[i].idx=i+1;
+    rawSegments[i].accumStart=accum;
+    accum+=rawSegments[i].duration;
+    rawSegments[i].accumEnd=accum;
+  }
+  return {segments:rawSegments,totalHours:accum,alerts};
+}
+
+// ===================== TAB NAVIGATION =====================
+function showTab(idx){
+  document.querySelectorAll('.tab-panel').forEach((p,i)=>p.classList.toggle('active',i===idx));
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  if(idx===1) setTimeout(renderCurveChart,50);
+  if(idx===2){ updateLivePanel(); setTimeout(renderRegistroChart,50); }
+}
+
+// ===================== MATERIAL SEARCH =====================
+function searchMaterial(){
+  const q=document.getElementById('mat-search').value.toLowerCase().trim();
+  const dd=document.getElementById('search-dropdown');
+  if(q.length<2){dd.style.display='none';return;}
+  const results=HormigonesDatabase.filter(m=>
+    m.name.toLowerCase().includes(q)||(m.brand||'').toLowerCase().includes(q)
+  ).slice(0,25);
+  if(!results.length){dd.style.display='none';return;}
+  dd.innerHTML=results.map(m=>{
+    const idx=HormigonesDatabase.indexOf(m);
+    const tStr=m.temperatura?`${m.temperatura}°C`:'T?';
+    return `<div class="search-item" onclick="selectMaterial(${idx})">
+      <div class="search-item-name">${escH(m.name)}</div>
+      <div class="search-item-meta">${escH(m.brand)} &middot; ${m.type} &middot; ${tStr} &middot; ${escH(m.description)}</div>
+    </div>`;
+  }).join('');
+  dd.style.display='block';
+}
+function escH(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function selectMaterial(idx){
+  const m=HormigonesDatabase[idx];
+  appState.selectedMaterial=m;
+  document.getElementById('mat-search').value=m.name;
+  document.getElementById('search-dropdown').style.display='none';
+  document.getElementById('castable-type').value=m.type||'LCC';
+  document.getElementById('binder-rate').value=m.rate||17;
+  document.getElementById('water-content').value=m.water||8.5;
+  document.getElementById('anti-wetting').checked=!!m.hasAntiWetting;
+  document.getElementById('has-fibers').checked=!!m.hasFibers;
+  const typeClass='badge-'+(m.type||'LCC').toLowerCase();
+  document.getElementById('mat-badge').innerHTML=`<span class="badge ${typeClass}">${m.type}</span>`;
+  document.getElementById('mat-name-display').textContent=m.name;
+  document.getElementById('mat-brand-display').textContent=m.brand;
+  document.getElementById('mat-temp-display').textContent=m.temperatura?`T_max: ${m.temperatura}°C`:'';
+  document.getElementById('mat-info').style.display='block';
+}
+
+function clearMaterial(){
+  appState.selectedMaterial=null;
+  document.getElementById('mat-search').value='';
+  document.getElementById('search-dropdown').style.display='none';
+  document.getElementById('mat-info').style.display='none';
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.search-wrap')) document.getElementById('search-dropdown').style.display='none';
+});
+
+// ===================== FORM LOGIC =====================
+function onTypeChange(){
+  const t=document.getElementById('castable-type').value;
+  document.getElementById('binder-rate').value=BinderRateByType[t]||17;
+  document.getElementById('water-content').value=(t==='CC'||t==='SOL_GEL')?13:8.5;
+}
+function onPresetChange(){
+  document.getElementById('custom-section').style.display=
+    document.querySelector('input[name="preset"]:checked').value==='CUSTOM'?'block':'none';
+}
+function onInsulatingToggle(){
+  document.getElementById('insulating-section').style.display=
+    document.getElementById('insulating-toggle').checked?'block':'none';
+}
+function onTCCountChange(){
+  const n=parseInt(document.getElementById('tc-count').value)||4;
+  appState.tcCount=n;
+  while(appState.tcNames.length<n) appState.tcNames.push('TC'+(appState.tcNames.length+1));
+  updateTCNamesUI();
+  updateCSVSelect();
+}
+function updateTCNamesUI(){
+  const n=appState.tcCount;
+  document.getElementById('tc-names-wrap').innerHTML=
+    Array.from({length:n},(_,i)=>`
+      <input type="text" id="tc-name-${i}" class="form-input" value="${escH(appState.tcNames[i]||('TC'+(i+1)))}"
+        style="width:90px" oninput="appState.tcNames[${i}]=this.value;updateCSVSelect()">`
+    ).join('');
+}
+function updateCSVSelect(){
+  const n=appState.tcCount;
+  document.getElementById('csv-tc-select').innerHTML=
+    Array.from({length:n},(_,i)=>`<option value="${i}">${escH(appState.tcNames[i]||'TC'+(i+1))}</option>`).join('');
+}
+
+function readConfig(){
+  const presetVal=document.querySelector('input[name="preset"]:checked').value;
+  let holds,targetTemp;
+  if(presetVal==='CUSTOM'){
+    holds=(document.getElementById('custom-holds').value||'').split(',').map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n));
+    targetTemp=parseFloat(document.getElementById('temp-end').value)||815;
+  } else {
+    const p=PresetCurves[presetVal];
+    holds=[...p.holds];
+    targetTemp=p.targetTemp;
+    const ue=parseFloat(document.getElementById('temp-end').value);
+    if(!isNaN(ue)&&ue>0) targetTemp=ue;
+  }
+  return {
+    castableType:document.getElementById('castable-type').value,
+    binderRate:parseFloat(document.getElementById('binder-rate').value)||17,
+    hasAntiWetting:document.getElementById('anti-wetting').checked,
+    hasFibers:document.getElementById('has-fibers').checked,
+    tempStart:parseFloat(document.getElementById('temp-start').value)||21,
+    tempEnd:parseFloat(document.getElementById('temp-end').value)||815,
+    holds,targetTemp,
+    denseThickness:parseFloat(document.getElementById('dense-thickness').value)||150,
+    isInsulatingEnabled:document.getElementById('insulating-toggle').checked,
+    insulatingThickness:parseFloat(document.getElementById('insulating-thickness').value)||75,
+    insulatingFactor:parseFloat(document.getElementById('insulating-factor').value)||0.02,
+    conductivity:parseFloat(document.getElementById('conductivity').value)||1.2,
+    density:parseFloat(document.getElementById('density').value)||2800,
+    heatCapacity:parseFloat(document.getElementById('heat-capacity').value)||0.9,
+    fourier:parseFloat(document.getElementById('fourier').value)||0.25
+  };
+}
+
+// ===================== CALCULATE & GO =====================
+function calculateAndGo(){
+  const config=readConfig();
+  const result=calculateProfile(config);
+  appState.segments=result.segments;
+  appState.totalHours=result.totalHours;
+  appState.alerts=result.alerts;
+  appState.config=config;
+  document.getElementById('config-alerts').innerHTML=result.alerts.map(a=>
+    `<div class="alert alert-${a.type}">${a.type==='danger'?svgDanger():a.type==='warning'?svgWarn():svgInfo()}<span>${a.msg}</span></div>`
+  ).join('');
+  if(result.totalHours>0){
+    updateSummary();
+    renderRampTable();
+    generarRegistroDesdeRampa();
+    showTab(1);
+  }
+}
+
+const svgDanger=()=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+const svgWarn=()=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+const svgInfo=()=>'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+
+// ===================== SUMMARY =====================
+function updateSummary(){
+  const hmi=hoursToHMI(appState.totalHours||0);
+  document.getElementById('sum-dias').textContent=hmi.dias;
+  document.getElementById('sum-horas').textContent=hmi.horas;
+  document.getElementById('sum-minutos').textContent=hmi.minutos;
+  const ds=document.getElementById('start-date').value;
+  const ts=document.getElementById('start-time').value;
+  if(ds&&ts&&appState.totalHours>0){
+    const fd=addDateTimeHours(ds,ts,appState.totalHours);
+    document.getElementById('sum-fin').textContent=fmtDateTimeFull(fd);
+  } else {
+    document.getElementById('sum-fin').textContent=appState.totalHours>0?`~${appState.totalHours.toFixed(1)} h`:'—';
+  }
+}
+
+// ===================== RAMP TABLE =====================
+function renderRampTable(){
+  const n=appState.tcCount;
+  const names=appState.tcNames.slice(0,n);
+  const thead=document.getElementById('ramp-thead');
+  const tbody=document.getElementById('ramp-tbody');
+  thead.innerHTML=`<tr>
+    <th>#</th><th>Tipo</th><th>°C/h</th><th>Dur. (h)</th><th>Dur. (min)</th>
+    <th>Horas Acum.</th><th>T. Objetivo</th>
+    ${names.map(nm=>`<th>${escH(nm)}</th>`).join('')}
+  </tr>`;
+  tbody.innerHTML='';
+  appState.segments.forEach((seg,i)=>{
+    const tr=document.createElement('tr');
+    const durMin=Math.round(seg.duration*60);
+    tr.innerHTML=`
+      <td class="mono">${seg.idx}</td>
+      <td>${seg.type==='RAMPA'?'<span class="badge badge-rampa">Rampa</span>':'<span class="badge badge-meseta">Meseta</span>'}</td>
+      <td class="auto-calc mono">${seg.type==='RAMPA'?seg.rate.toFixed(1):'—'}</td>
+      <td class="auto-calc mono">${seg.duration.toFixed(2)}</td>
+      <td class="auto-calc mono">${durMin}</td>
+      <td class="auto-calc mono">${seg.accumEnd.toFixed(2)}</td>
+      <td class="auto-calc mono">${seg.tempEnd}°C</td>
+      ${Array.from({length:n},(_,ti)=>`<td><input type="number" placeholder="—" step="0.1" style="min-width:65px" data-seg="${i}" data-tc="${ti}"></td>`).join('')}
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function addManualRow(){
+  const n=appState.tcCount;
+  const tbody=document.getElementById('ramp-tbody');
+  const tr=document.createElement('tr');
+  tr.classList.add('manual-row');
+  tr.innerHTML=`
+    <td class="mono">M</td>
+    <td><select class="form-select" style="font-size:11px;padding:3px 6px"><option>RAMPA</option><option>MESETA</option></select></td>
+    <td><input type="number" class="form-input mono" style="width:65px" placeholder="°C/h"></td>
+    <td><input type="number" class="form-input mono" style="width:65px" placeholder="h"></td>
+    <td class="mono">—</td><td class="mono">—</td>
+    <td><input type="number" class="form-input mono" style="width:65px" placeholder="°C"></td>
+    ${Array.from({length:n},()=>`<td><input type="number" placeholder="—" step="0.1" style="min-width:65px"></td>`).join('')}
+    <td><button class="btn btn-outline btn-sm" onclick="this.closest('tr').remove()">&#10005;</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function recalcTable(){
+  const config=readConfig();
+  const result=calculateProfile(config);
+  appState.segments=result.segments;
+  appState.totalHours=result.totalHours;
+  appState.config=config;
+  updateSummary();
+  renderRampTable();
+  renderCurveChart();
+}
+
+// ===================== CURVE CHART =====================
+function renderCurveChart(){
+  const segs=appState.segments;
+  if(!segs||!segs.length) return;
+  const total=appState.totalHours;
+  const step=total>200?2:total>100?1:0.5;
+  const pts=[];
+  for(let h=0;h<=total;h+=step) pts.push({x:parseFloat(h.toFixed(3)),y:parseFloat(getTempAtHour(segs,h).toFixed(1))});
+  if(pts[pts.length-1].x<total) pts.push({x:parseFloat(total.toFixed(3)),y:parseFloat(getTempAtHour(segs,total).toFixed(1))});
+  const ctx=document.getElementById('curve-chart').getContext('2d');
+  if(appState.curveChartInst) appState.curveChartInst.destroy();
+  appState.curveChartInst=new Chart(ctx,{
+    type:'line',
+    data:{datasets:[{label:'T. Teórica (°C)',data:pts,borderColor:'#C0022C',borderWidth:2.5,pointRadius:0,tension:0.05,fill:false}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,parsing:false,
+      scales:{
+        x:{type:'linear',title:{display:true,text:'Tiempo (horas)',font:{size:12}},grid:{color:'rgba(0,0,0,0.05)'}},
+        y:{title:{display:true,text:'Temperatura (°C)',font:{size:12}},grid:{color:'rgba(0,0,0,0.05)'}}
+      },
+      plugins:{
+        legend:{labels:{font:{size:12}}},
+        tooltip:{callbacks:{title:i=>`t = ${i[0].raw.x} h`,label:i=>`${i[0].raw.y} °C`}}
+      }
+    }
+  });
+}
+
+// ===================== REGISTRO HORA-HORA =====================
+function generarRegistroDesdeRampa(){
+  const segs=appState.segments;
+  if(!segs||!segs.length) return;
+  const maxH=Math.ceil(appState.totalHours);
+  const ds=document.getElementById('start-date').value;
+  const ts=document.getElementById('start-time').value;
+  const rows=[];
+  for(let h=0;h<=maxH;h++){
+    const teo=parseFloat(getTempAtHour(segs,h).toFixed(1));
+    let fecha='',horaStr='';
+    if(ds&&ts){const d=addDateTimeHours(ds,ts,h);fecha=fmtDate(d);horaStr=fmtTime(d);}
+    rows.push({hora:h,fecha,horaStr,teoTemp:teo,tcVals:Array(appState.tcCount).fill(''),tNave:'',obs:''});
+  }
+  appState.registroRows=rows;
+  renderRegistroTable();
+}
+
+function renderRegistroTable(){
+  const rows=appState.registroRows;
+  const n=appState.tcCount;
+  const names=appState.tcNames.slice(0,n);
+  const showNav=appState.config&&appState.config.targetTemp>500;
+  document.getElementById('registro-thead').innerHTML=`<tr>
+    <th>Fecha</th><th>Hora</th><th>N° Hora</th><th>T.Rampa Teórica (°C)</th>
+    ${names.map(nm=>`<th>${escH(nm)}</th>`).join('')}
+    ${showNav?'<th>T. Nave</th>':''}
+    <th>Observaciones</th>
+  </tr>`;
+  const tbody=document.getElementById('registro-tbody');
+  tbody.innerHTML='';
+  rows.forEach((row,ri)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td class="mono" style="font-size:11px">${row.fecha}</td>
+      <td class="mono" style="font-size:11px">${row.horaStr}</td>
+      <td class="mono">${row.hora}</td>
+      <td class="auto-calc mono">${row.teoTemp}</td>
+      ${Array.from({length:n},(_,ti)=>`
+        <td><input type="number" value="${row.tcVals[ti]!==''?row.tcVals[ti]:''}" step="0.1" placeholder="—" style="min-width:65px"
+          onchange="appState.registroRows[${ri}].tcVals[${ti}]=this.value===''?'':parseFloat(this.value);updateRegistroChart()"></td>`).join('')}
+      ${showNav?`<td><input type="number" value="${row.tNave}" step="0.1" placeholder="—" style="min-width:65px"
+        onchange="appState.registroRows[${ri}].tNave=this.value===''?'':parseFloat(this.value)"></td>`:''}
+      <td><input type="text" value="${escH(row.obs)}" placeholder="…" style="min-width:120px"
+        onchange="appState.registroRows[${ri}].obs=this.value"></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  updateCSVSelect();
+}
+
+function addExtraHour(){
+  const rows=appState.registroRows;
+  const lastH=rows.length>0?rows[rows.length-1].hora+1:0;
+  const teo=parseFloat(getTempAtHour(appState.segments,lastH).toFixed(1));
+  const ds=document.getElementById('start-date').value;
+  const ts=document.getElementById('start-time').value;
+  let fecha='',horaStr='';
+  if(ds&&ts){const d=addDateTimeHours(ds,ts,lastH);fecha=fmtDate(d);horaStr=fmtTime(d);}
+  rows.push({hora:lastH,fecha,horaStr,teoTemp:teo,tcVals:Array(appState.tcCount).fill(''),tNave:'',obs:''});
+  renderRegistroTable();
+}
+
+// ===================== CSV LOAD =====================
+function cargarCSV(){
+  const file=document.getElementById('csv-file').files[0];
+  if(!file){alert('Selecciona un archivo CSV.');return;}
+  const tcIdx=parseInt(document.getElementById('csv-tc-select').value);
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const text=e.target.result;
+    const lines=text.split(/\r?\n/);
+    const dataLines=lines.slice(2).filter(l=>l.trim().length>0);
+    const parsed=[];
+    for(const line of dataLines){
+      const cols=line.split(';');
+      if(cols.length<2) continue;
+      const tsStr=cols[0].trim();
+      const tempStr=cols[1].trim().replace(',','.');
+      const tsObj=new Date(tsStr);
+      const temp=parseFloat(tempStr);
+      if(!isNaN(tsObj.getTime())&&!isNaN(temp)) parsed.push({ts:tsObj.getTime(),temp});
+    }
+    parsed.sort((a,b)=>a.ts-b.ts);
+    if(!parsed.length){document.getElementById('csv-status').textContent='No se encontraron datos válidos.';return;}
+    const TOL_MS=30*60*1000;
+    const ds=document.getElementById('start-date').value;
+    const ts=document.getElementById('start-time').value;
+    let mapped=0;
+    if(ds&&ts){
+      for(let ri=0;ri<appState.registroRows.length;ri++){
+        const row=appState.registroRows[ri];
+        const rowMs=addDateTimeHours(ds,ts,row.hora).getTime();
+        let lo=0,hi=parsed.length-1,bestIdx=-1,bestDiff=Infinity;
+        while(lo<=hi){
+          const mid=(lo+hi)>>1;
+          const diff=Math.abs(parsed[mid].ts-rowMs);
+          if(diff<bestDiff){bestDiff=diff;bestIdx=mid;}
+          if(parsed[mid].ts<rowMs)lo=mid+1;else hi=mid-1;
+        }
+        if(bestIdx>=0&&bestDiff<=TOL_MS){appState.registroRows[ri].tcVals[tcIdx]=parseFloat(parsed[bestIdx].temp.toFixed(1));mapped++;}
+      }
+    }
+    appState.csvData[tcIdx]=parsed;
+    document.getElementById('csv-status').textContent=`${parsed.length} lecturas cargadas → ${mapped} filas mapeadas (tolerancia ±30 min).`;
+    renderRegistroTable();
+    updateRegistroChart();
+  };
+  reader.readAsText(file,'utf-8');
+}
+
+// ===================== REGISTRO CHART =====================
+function renderRegistroChart(){
+  const rows=appState.registroRows;
+  if(!rows||!rows.length) return;
+  const n=appState.tcCount;
+  const teoData=rows.map(r=>({x:r.hora,y:r.teoTemp}));
+  const datasets=[{
+    label:'T. Teórica',data:teoData,
+    borderColor:'#C0022C',borderWidth:3,pointRadius:0,tension:0.05,fill:false
+  }];
+  for(let ti=0;ti<n;ti++){
+    const tcData=rows.filter(r=>r.tcVals[ti]!==''&&!isNaN(r.tcVals[ti])).map(r=>({x:r.hora,y:parseFloat(r.tcVals[ti])}));
+    if(tcData.length>0) datasets.push({
+      label:appState.tcNames[ti]||`TC${ti+1}`,data:tcData,
+      borderColor:TC_COLORS[ti%TC_COLORS.length],borderWidth:2,pointRadius:2,tension:0.05,fill:false
+    });
+  }
+  const tNavData=rows.filter(r=>r.tNave!==''&&!isNaN(r.tNave)).map(r=>({x:r.hora,y:parseFloat(r.tNave)}));
+  if(tNavData.length>0) datasets.push({
+    label:'T. Nave',data:tNavData,
+    borderColor:'#959595',borderDash:[5,5],borderWidth:1.5,pointRadius:0,tension:0.05,fill:false
+  });
+  const ctx=document.getElementById('registro-chart').getContext('2d');
+  if(appState.registroChartInst) appState.registroChartInst.destroy();
+  appState.registroChartInst=new Chart(ctx,{
+    type:'line',data:{datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,parsing:false,
+      scales:{
+        x:{type:'linear',title:{display:true,text:'Hora N°',font:{size:12}},grid:{color:'rgba(0,0,0,0.05)'}},
+        y:{title:{display:true,text:'Temperatura (°C)',font:{size:12}},grid:{color:'rgba(0,0,0,0.05)'}}
+      },
+      plugins:{legend:{labels:{font:{size:12}}}}
+    }
+  });
+}
+
+function updateRegistroChart(){ renderRegistroChart(); }
+
+// ===================== LIVE PANEL =====================
+function updateLivePanel(){
+  const hmi=hoursToHMI(appState.totalHours||0);
+  document.getElementById('live-duracion').textContent=`${hmi.dias}d ${hmi.horas}h ${hmi.minutos}m`;
+  const ds=document.getElementById('start-date').value;
+  const ts=document.getElementById('start-time').value;
+  if(ds&&ts&&appState.totalHours>0){
+    const fd=addDateTimeHours(ds,ts,appState.totalHours);
+    document.getElementById('live-fin').textContent=fmtDateTimeFull(fd);
+    const now=new Date();
+    const start=addDateTimeHours(ds,ts,0);
+    const elapsedH=(now.getTime()-start.getTime())/3600000;
+    const segs=appState.segments;
+    if(segs&&segs.length){
+      const phase=getCurrentPhase(segs,Math.max(elapsedH,0));
+      if(phase){
+        const lbl=phase.seg.type==='RAMPA'?`Rampa → ${phase.seg.tempEnd}°C`:`Meseta @ ${phase.seg.tempStart}°C`;
+        document.getElementById('live-fase').textContent=lbl;
+        const phEnd=addDateTimeHours(ds,ts,phase.endHour);
+        document.getElementById('live-fase-fin').textContent=`fin de fase: ${fmtDateTimeFull(phEnd)}`;
+      } else if(elapsedH>appState.totalHours){
+        document.getElementById('live-fase').textContent='COMPLETADO';
+        document.getElementById('live-fase-fin').textContent='';
+      } else {
+        document.getElementById('live-fase').textContent='No iniciado';
+        document.getElementById('live-fase-fin').textContent='';
+      }
+    }
+  } else {
+    document.getElementById('live-fin').textContent='—';
+    document.getElementById('live-fase').textContent='—';
+    document.getElementById('live-fase-fin').textContent='fin de fase: —';
+  }
+}
+
+function startClock(){
+  function tick(){
+    const now=new Date();
+    document.getElementById('live-clock').textContent=fmtTime(now)+':'+fmt2(now.getSeconds());
+    document.getElementById('live-date').textContent=`${now.toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'short',year:'numeric'})}`;
+    updateLivePanel();
+  }
+  tick();
+  setInterval(tick,1000);
+}
+
+// ===================== FIN SECADO =====================
+function finSecado(){
+  document.getElementById('fin-banner').classList.add('show');
+  document.getElementById('fin-banner').scrollIntoView({behavior:'smooth'});
+}
+
+// ===================== EXPORT EXCEL =====================
+async function exportExcel(){
+  if(typeof ExcelJS==='undefined'){alert('ExcelJS no cargado. Verifica la conexión a internet.');return;}
+  const wb=new ExcelJS.Workbook();
+  wb.creator='GHI Smart Furnaces';wb.created=new Date();
+  const hdr=[{font:{bold:true,size:14,color:{argb:'FFFEFEFE'}},fill:{type:'pattern',pattern:'solid',fgColor:{argb:'FF1F1F1F'}}}];
+  const ws1=wb.addWorksheet('Informe');
+  ws1.addRow(['GHI SMART FURNACES — INFORME DE SECADO DE REFRACTARIO']).getCell(1).font={bold:true,size:14};
+  ws1.addRow([]);
+  ws1.addRow(['Proyecto:',document.getElementById('project-name').value||'—']);
+  ws1.addRow(['Fecha inicio:',document.getElementById('start-date').value||'—','Hora:',document.getElementById('start-time').value||'—']);
+  ws1.addRow(['Material:',appState.selectedMaterial?appState.selectedMaterial.name:'—']);
+  ws1.addRow(['Tipo hormigón:',appState.config?appState.config.castableType:'—']);
+  ws1.addRow(['Espesor capa densa (mm):',appState.config?appState.config.denseThickness:'—']);
+  const hmi=hoursToHMI(appState.totalHours||0);
+  ws1.addRow(['Duración total:',`${hmi.dias} días · ${hmi.horas} horas · ${hmi.minutos} minutos`]);
+  ws1.addRow(['Horas totales:',parseFloat((appState.totalHours||0).toFixed(2))]);
+  ws1.addRow([]);ws1.addRow(['ALERTAS DE SEGURIDAD:']);
+  (appState.alerts||[]).forEach(a=>ws1.addRow([a.type.toUpperCase(),a.msg]));
+  ws1.columns=[{width:30},{width:60},{width:10},{width:30}];
+  const ws2=wb.addWorksheet('Curva de Secado');
+  const tcNames=appState.tcNames.slice(0,appState.tcCount);
+  const h2=ws2.addRow(['#','Tipo','°C/h','Duración (h)','Duración (min)','Horas Acum.','T. Objetivo (°C)',...tcNames]);
+  h2.eachCell(c=>{c.font={bold:true,color:{argb:'FFFEFEFE'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F1F1F'}};});
+  (appState.segments||[]).forEach(s=>{
+    ws2.addRow([s.idx,s.type,s.type==='RAMPA'?parseFloat(s.rate.toFixed(2)):null,parseFloat(s.duration.toFixed(3)),Math.round(s.duration*60),parseFloat(s.accumEnd.toFixed(3)),s.tempEnd]);
+  });
+  ws2.columns=Array.from({length:7+tcNames.length},(_,i)=>({width:i<7?18:12}));
+  const ws3=wb.addWorksheet('Registro Hora-Hora');
+  const h3=ws3.addRow(['Fecha','Hora','N° Hora','T. Teórica (°C)',...tcNames,'T. Nave','Observaciones']);
+  h3.eachCell(c=>{c.font={bold:true,color:{argb:'FFFEFEFE'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F1F1F'}};});
+  (appState.registroRows||[]).forEach(r=>{
+    ws3.addRow([r.fecha,r.horaStr,r.hora,r.teoTemp,...r.tcVals.slice(0,appState.tcCount).map(v=>v===''?null:v),r.tNave===''?null:r.tNave,r.obs||'']);
+  });
+  ws3.columns=Array.from({length:8+appState.tcCount},(_,i)=>({width:i===0?14:i===1?8:i===2?8:i===3?16:i<4+appState.tcCount?12:i===4+appState.tcCount?12:30}));
+  const buf=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`GHI_Secado_${(document.getElementById('project-name').value||'proyecto').replace(/[\s\/\\:*?"<>|]/g,'-')}_${new Date().toISOString().slice(0,10)}.xlsx`;
+  a.click();URL.revokeObjectURL(a.href);
+}
+
+// ===================== EXPORT PDF =====================
+function exportPDF(){
+  if(!window.jspdf){alert('jsPDF no cargado. Verifica la conexión a internet.');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const proj=document.getElementById('project-name').value||'Secado';
+  const today=new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'});
+  doc.setFillColor(31,31,31);doc.rect(0,0,210,52,'F');
+  doc.setFillColor(192,2,44);doc.rect(0,48,210,4,'F');
+  doc.setTextColor(254,254,254);
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.text('GHI SMART FURNACES',15,18);
+  doc.setFont('helvetica','normal');doc.setFontSize(12);doc.text('Informe de Secado de Refractario',15,28);
+  doc.setFontSize(9);doc.text(`Proyecto: ${proj}`,15,40);doc.text(`Fecha informe: ${today}`,140,40);
+  doc.setTextColor(51,51,51);
+  let y=64;
+  const addSection=(title)=>{
+    doc.setFont('helvetica','bold');doc.setFontSize(11);
+    doc.setFillColor(240,240,240);doc.rect(10,y-5,190,8,'F');
+    doc.text(title,15,y);y+=10;doc.setFont('helvetica','normal');doc.setFontSize(9);
+  };
+  const addLine=(label,value)=>{doc.text(`${label}`,15,y);doc.text(`${value}`,75,y);y+=6;};
+  addSection('DATOS DEL PROYECTO');
+  addLine('Material:',appState.selectedMaterial?appState.selectedMaterial.name:'—');
+  addLine('Tipo hormigón:',appState.config?appState.config.castableType:'—');
+  addLine('Espesor capa densa:',appState.config?`${appState.config.denseThickness} mm`:'—');
+  addLine('Capa aislante:',appState.config&&appState.config.isInsulatingEnabled?`Sí (${appState.config.insulatingThickness} mm)`:'No');
+  addLine('Tasa base calentamiento:',appState.config?`${appState.config.binderRate} °C/h`:'—');
+  addLine('Anti-Wetting:',appState.config&&appState.config.hasAntiWetting?'Sí':'No');
+  addLine('Fibras PP:',appState.config&&appState.config.hasFibers?'Sí':'No');
+  addLine('Fecha inicio:',document.getElementById('start-date').value||'—');
+  addLine('Hora inicio:',document.getElementById('start-time').value||'—');
+  const hmi=hoursToHMI(appState.totalHours||0);
+  addLine('Duración total:',`${hmi.dias}d ${hmi.horas}h ${hmi.minutos}m (${(appState.totalHours||0).toFixed(1)} h)`);
+  y+=4;
+  if(appState.alerts&&appState.alerts.length){
+    addSection('ALERTAS DE SEGURIDAD');
+    appState.alerts.forEach(a=>{
+      const lines=doc.splitTextToSize(`[${a.type.toUpperCase()}] ${a.msg}`,175);
+      doc.text(lines,15,y);y+=lines.length*5+3;
+    });
+    y+=4;
+  }
+  if(appState.segments&&appState.segments.length){
+    if(y>220) doc.addPage();
+    addSection('CURVA DE SECADO — RESUMEN DE TRAMOS');
+    doc.autoTable({
+      startY:y,margin:{left:10},
+      head:[['#','Tipo','°C/h','Duración (h)','Horas Acum.','T. Objetivo']],
+      body:appState.segments.map(s=>[s.idx,s.type,s.type==='RAMPA'?s.rate.toFixed(1):'—',s.duration.toFixed(2),s.accumEnd.toFixed(2),`${s.tempEnd}°C`]),
+      styles:{fontSize:8,cellPadding:3},
+      headStyles:{fillColor:[31,31,31],textColor:[255,255,255],fontSize:8},
+      alternateRowStyles:{fillColor:[242,242,242]},
+      columnStyles:{0:{cellWidth:10},1:{cellWidth:20},2:{cellWidth:18},3:{cellWidth:25},4:{cellWidth:25},5:{cellWidth:22}}
+    });
+    y=doc.lastAutoTable.finalY+10;
+  }
+  const rows=appState.registroRows||[];
+  if(rows.length>0){
+    doc.addPage();y=20;
+    addSection('ANÁLISIS DE DESVIACIONES POR TERMOPAR');
+    for(let ti=0;ti<appState.tcCount;ti++){
+      const vals=rows.map(r=>({teo:r.teoTemp,med:r.tcVals[ti]})).filter(v=>v.med!==''&&!isNaN(parseFloat(v.med)));
+      if(!vals.length) continue;
+      const diffs=vals.map(v=>Math.abs(parseFloat(v.med)-v.teo));
+      const avg=diffs.reduce((s,d)=>s+d,0)/diffs.length;
+      const maxD=Math.max(...diffs);
+      const top5=[...diffs].sort((a,b)=>b-a).slice(0,5);
+      doc.setFont('helvetica','bold');doc.text(`${appState.tcNames[ti]||('TC'+(ti+1))}:`,15,y);y+=5;
+      doc.setFont('helvetica','normal');
+      doc.text(`  Desviación media: ${avg.toFixed(1)}°C  |  Máxima: ${maxD.toFixed(1)}°C  |  Top-5: ${top5.map(d=>d.toFixed(1)).join(', ')} °C`,15,y);y+=8;
+    }
+  }
+  doc.save(`GHI_Informe_${(proj||'secado').replace(/[\s\/\\:*?"<>|]/g,'-')}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+// ===================== PERSISTENCE =====================
+function saveProject(){
+  try{
+    const data={
+      projectName:document.getElementById('project-name').value,
+      startDate:document.getElementById('start-date').value,
+      startTime:document.getElementById('start-time').value,
+      tcCount:document.getElementById('tc-count').value,
+      tcNames:[...appState.tcNames],
+      segments:appState.segments,totalHours:appState.totalHours,
+      alerts:appState.alerts,config:appState.config,
+      registroRows:appState.registroRows,selectedMaterial:appState.selectedMaterial,
+      castableType:document.getElementById('castable-type').value,
+      binderRate:document.getElementById('binder-rate').value,
+      antiWetting:document.getElementById('anti-wetting').checked,
+      hasFibers:document.getElementById('has-fibers').checked,
+      tempStart:document.getElementById('temp-start').value,
+      tempEnd:document.getElementById('temp-end').value,
+      denseThickness:document.getElementById('dense-thickness').value,
+      insulatingEnabled:document.getElementById('insulating-toggle').checked,
+      presetVal:document.querySelector('input[name="preset"]:checked').value,
+      customHolds:document.getElementById('custom-holds').value
+    };
+    localStorage.setItem('ghiSecadoProject_v2',JSON.stringify(data));
+    alert('Proyecto guardado en el navegador.');
+  }catch(e){alert('Error guardando: '+e.message);}
+}
+
+function saveProjectData(){
+  try{
+    const existing=JSON.parse(localStorage.getItem('ghiSecadoProject_v2')||'{}');
+    existing.projectName=document.getElementById('project-name').value;
+    existing.startDate=document.getElementById('start-date').value;
+    existing.startTime=document.getElementById('start-time').value;
+    localStorage.setItem('ghiSecadoProject_v2',JSON.stringify(existing));
+  }catch(e){}
+}
+
+function loadProject(){
+  try{
+    const raw=localStorage.getItem('ghiSecadoProject_v2');
+    if(!raw){alert('No hay proyecto guardado en este navegador.');return;}
+    const d=JSON.parse(raw);
+    if(d.projectName) document.getElementById('project-name').value=d.projectName;
+    if(d.startDate)   document.getElementById('start-date').value=d.startDate;
+    if(d.startTime)   document.getElementById('start-time').value=d.startTime;
+    if(d.tcCount)     document.getElementById('tc-count').value=d.tcCount;
+    if(d.tcNames)     appState.tcNames=d.tcNames;
+    if(d.castableType) document.getElementById('castable-type').value=d.castableType;
+    if(d.binderRate)   document.getElementById('binder-rate').value=d.binderRate;
+    if(d.antiWetting!=null) document.getElementById('anti-wetting').checked=d.antiWetting;
+    if(d.hasFibers!=null)   document.getElementById('has-fibers').checked=d.hasFibers;
+    if(d.tempStart) document.getElementById('temp-start').value=d.tempStart;
+    if(d.tempEnd)   document.getElementById('temp-end').value=d.tempEnd;
+    if(d.denseThickness) document.getElementById('dense-thickness').value=d.denseThickness;
+    if(d.insulatingEnabled) document.getElementById('insulating-toggle').checked=d.insulatingEnabled;
+    onInsulatingToggle();
+    if(d.presetVal){
+      const r=document.querySelector(`input[name="preset"][value="${d.presetVal}"]`);
+      if(r){r.checked=true;onPresetChange();}
+    }
+    if(d.customHolds) document.getElementById('custom-holds').value=d.customHolds;
+    if(d.segments&&d.segments.length){
+      appState.segments=d.segments;appState.totalHours=d.totalHours;
+      appState.alerts=d.alerts||[];appState.config=d.config;
+      appState.registroRows=d.registroRows||[];
+      appState.selectedMaterial=d.selectedMaterial||null;
+      appState.tcCount=parseInt(d.tcCount)||4;
+      if(d.selectedMaterial){
+        const m=d.selectedMaterial;
+        document.getElementById('mat-search').value=m.name;
+        const tc='badge-'+(m.type||'LCC').toLowerCase();
+        document.getElementById('mat-badge').innerHTML=`<span class="badge ${tc}">${m.type}</span>`;
+        document.getElementById('mat-name-display').textContent=m.name;
+        document.getElementById('mat-brand-display').textContent=m.brand;
+        document.getElementById('mat-temp-display').textContent=m.temperatura?`T_max: ${m.temperatura}°C`:'';
+        document.getElementById('mat-info').style.display='block';
+      }
+      updateTCNamesUI();updateCSVSelect();
+      updateSummary();renderRampTable();renderRegistroTable();
+    }
+    alert('Proyecto cargado correctamente.');
+  }catch(e){alert('Error cargando proyecto: '+e.message);}
+}
+
+// ===================== INIT =====================
+document.addEventListener('DOMContentLoaded',function(){
+  const today=new Date();
+  document.getElementById('start-date').value=fmtDate(today);
+  appState.tcCount=4;
+  appState.tcNames=['TC1','TC2','TC3','TC4'];
+  updateTCNamesUI();
+  updateCSVSelect();
+  startClock();
+});
+</script>
+</body>
+</html>
